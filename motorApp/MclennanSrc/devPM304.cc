@@ -16,7 +16,7 @@
  *                              motorRecord
  * .03  02-11-03        mlr     Version 3.0, added support for PM600 model.
  *                              Added SD for decceleration.
- * .04  05/27/03 	rls 	R3.14 conversion.
+ * .04  05/27/03    rls     R3.14 conversion.
  *      ...
  */
 
@@ -24,12 +24,12 @@
 #define VERSION 3.00
 
 
-#include 	<string.h>
+#include    <string.h>
 #include        "motorRecord.h"
 #include        "motor.h"
 #include        "motordevCom.h"
 #include        "drvPM304.h"
-#include 	"epicsExport.h"
+#include    "epicsExport.h"
 
 #define STATIC static
 
@@ -66,6 +66,7 @@ STATIC long PM304_init_record(void *);
 STATIC long PM304_start_trans(struct motorRecord *);
 STATIC RTN_STATUS PM304_build_trans(motor_cmnd, double *, struct motorRecord *);
 STATIC RTN_STATUS PM304_end_trans(struct motorRecord *);
+STATIC long VELO = 0;
 
 struct motor_dset devPM304 =
 {
@@ -120,7 +121,7 @@ STATIC long PM304_init(void *arg)
 
     if (after == 0)
     {
-	drvtabptr = &PM304_access;
+    drvtabptr = &PM304_access;
         (drvtabptr->init)();
     }
 
@@ -232,14 +233,18 @@ STATIC RTN_STATUS PM304_build_trans(motor_cmnd command, double *parms, struct mo
         if (cntrl->model == MODEL_PM304){
            sprintf(buff, "%dIX;", axis);
         } else {
-           sprintf(buff, "%dHD;", axis);
+           //sprintf(buff, "%dHD;", axis);
+           // Motor always sends an SV before CV for VELO will be current base velocity
+           sprintf(buff, "%dCV%ld;", axis, VELO);
         }
         break;
     case HOME_REV:
         if (cntrl->model == MODEL_PM304){
            sprintf(buff, "%dIX-1;", axis);
         } else {
-           sprintf(buff, "%dHD-1;", axis);
+           //sprintf(buff, "%dHD-1;", axis);
+           // Motor always sends an SV before CV for VELO will be current base velocity
+           sprintf(buff, "%dCV-%ld;", axis, VELO);
         }
         break;
     case LOAD_POS:
@@ -253,6 +258,7 @@ STATIC RTN_STATUS PM304_build_trans(motor_cmnd command, double *parms, struct mo
         break;          /* PM304 does not use base velocity */
     case SET_VELOCITY:
         sprintf(buff, "%dSV%ld;", axis, ival);
+        VELO = ival;
         break;
     case SET_ACCEL:
         sprintf(buff, "%dSA%ld;", axis, ival);
