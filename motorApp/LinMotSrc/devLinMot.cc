@@ -188,7 +188,8 @@ STATIC RTN_STATUS LinMot_build_trans(motor_cmnd command, double *parms, struct m
         sprintf(buff, "!SP%ld%c;", ival, axis);
         break;
     case SET_VELOCITY:
-        sprintf(buff, "!SV%ld%c;", ival, axis);
+	    /* Speed resolution in nm/s. Convert to mm/s. */
+        sprintf(buff, "!SV%ld%c;", int(ival*1000000.0/cntrl->speed_resolution), axis);
         break;
     case SET_ACCEL:
         sprintf(buff, "!SA%ld%c;", ival, axis);
