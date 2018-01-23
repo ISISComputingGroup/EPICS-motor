@@ -83,6 +83,7 @@ static inline void Debug(int level, const char *format, ...) {
  */
 
 int PM304_num_cards = 0;
+int controller_error = 0;
 
 /* Local data required for every driver; see "motordrvComCode.h" */
 #include        "motordrvComCode.h"
@@ -314,6 +315,9 @@ STATIC int set_status(int card, int signal)
         motor_info->encoder_position = motorData;
         motor_info->no_motion_count = 0;
     }
+	
+	/* Problem if controller error */
+	status.Bits.RA_PROBLEM = controller_error > 0 ? 1 : status.Bits.RA_PROBLEM;
 
     /* Parse motor velocity? */
     /* NEEDS WORK */
@@ -375,13 +379,24 @@ STATIC RTN_STATUS send_mess(int card, const char *com, char *name)
      * characters.  The PM304 cannot handle more than 1 command on a line
      * so send them separately */
     strcpy(temp, com);
-    for (p = epicsStrtok_r(temp, ";", &tok_save);
+    for (p = epicsStrtok_r(temp, ";", &tok_save);		 
                 ((p != NULL) && (strlen(p) != 0));
                 p = epicsStrtok_r(NULL, ";", &tok_save)) {
+		
         Debug(2, "send_mess: sending message to card %d, message=%s\n", card, p);
-    pasynOctetSyncIO->writeRead(cntrl->pasynUser, p, strlen(p), response,
+	    pasynOctetSyncIO->writeRead(cntrl->pasynUser, p, strlen(p), response,
                 BUFF_SIZE, TIMEOUT, &nwrite, &nread, &eomReason);
-        Debug(2, "send_mess: card %d, response=%s\n", card, response);
+		/* Set the debug level for most responses to be 2. Flag reset messages
+		 * to 1 so we can spot them more easily */
+		int level;
+		if (strcmp(&p[1],"RS")==0 && strstr(response, "NOT ABORTED") == NULL) {
+			level = 1;
+			controller_error = 1;
+		} else {
+			level = 2;
+			controller_error = 0;
+		}
+        Debug(level, "send_mess: card %d, response=...\n%s\n", card, response);
     }
 
     return(OK);
