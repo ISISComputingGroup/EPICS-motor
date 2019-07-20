@@ -1,9 +1,11 @@
 #include    <string.h>
 #include    <math.h>
 #include    <stdio.h>
+#include    <stdlib.h>
 #include    <epicsThread.h>
 #include    <epicsString.h>
 #include    <drvSup.h>
+#include    <errlog.h>
 #include    "motor.h"
 #include    "drvLinMot.h"
 #include    "asynOctetSyncIO.h"

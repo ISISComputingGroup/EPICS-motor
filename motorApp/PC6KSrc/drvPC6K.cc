@@ -3,10 +3,6 @@ FILENAME...	drvPC6K.cc
 USAGE...	Motor record driver level support for Parker Computmotor
                 6K Series motor controllers
 
-Version:        $Revision: 14155 $
-Modified By:    $Author: sluiter $
-Last Modified:  $Date: 2011-11-29 14:50:00 -0600 (Tue, 29 Nov 2011) $
-HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-9/motorApp/PC6KSrc/drvPC6K.cc $
 */
 
 /*
@@ -47,6 +43,8 @@ HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-
 #include <stdio.h>
 #include <epicsThread.h>
 #include <drvSup.h>
+#include <stdlib.h>
+#include <errlog.h>
 #include "motor.h"
 #include "ParkerRegister.h"
 #include "drvPC6K.h"
@@ -834,7 +832,7 @@ static int motor_init()
 	    } while (!recvCnt && ++retryCnt < 3);
 
 
-	    /* send_mess(card_index, COMEXEC_ENA, (char) NULL); */   /* Enable continuous commands */
+	    /* send_mess(card_index, COMEXEC_ENA, (char*) NULL); */   /* Enable continuous commands */
 	    send_recv_mess(card_index, COMEXEC_ENA, buff);   /* Enable continuous commands */
 	    // send_recv_mess(card_index, CMD_SCALE, buff);     /* Enable scaling  - unary */
 

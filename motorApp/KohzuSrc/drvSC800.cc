@@ -2,10 +2,6 @@
 FILENAME...     drvSC800.cc
 USAGE...        Motor record driver level support for Kohzu SC800                
 
-Version:        $Revision: 14155 $
-Modified By:    $Author: sluiter $
-Last Modified:  $Date: 2011-11-29 14:50:00 -0600 (Tue, 29 Nov 2011) $
-HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-9/motorApp/KohzuSrc/drvSC800.cc $
 
 */
 
@@ -49,6 +45,8 @@ HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-
 #include <epicsThread.h>
 #include <drvSup.h>
 #include <iocsh.h>
+#include <errlog.h>
+#include <stdlib.h>
 #include "motor.h"
 #include "motorRecord.h"
 #include "drvSC800.h"
