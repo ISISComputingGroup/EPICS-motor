@@ -26,6 +26,15 @@ record(motor,"$(P)$(M)")
 alias("$(P)$(M)", "$(P)$(M):SP")
 alias("$(P)$(M)", "$(P)$(M):SP:RBV")
 
+# ISIS enable/disable
+record(bo, "$(P)$(M)_able") {
+  field(DESC, "motor enable")
+  field(PINI, "YES")
+  field(OUT, "$(P)$(M).DISP")
+  field(ZNAM, "Enable")
+  field(ONAM, "Disable")
+}
+
 record(ao,"$(P)$(M)_MRESMON")
 {
     field(OMSL, "closed_loop")
