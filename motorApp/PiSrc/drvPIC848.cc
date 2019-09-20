@@ -3,10 +3,6 @@ FILENAME...	drvPIC848.cc
 USAGE...	Motor record driver level support for Physik Instrumente (PI)
 	GmbH & Co. C-848 motor controller.
 
-Version:        $Revision: 14157 $
-Modified By:    $Author: sluiter $
-Last Modified:  $Date: 2011-11-29 15:52:25 -0600 (Tue, 29 Nov 2011) $
-HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-9/motorApp/PiSrc/drvPIC848.cc $
 */
 
 /*
@@ -50,6 +46,8 @@ DESIGN LIMITATIONS...
 #include <string.h>
 #include <epicsThread.h>
 #include <drvSup.h>
+#include <stdlib.h>
+#include <errlog.h>
 #include "motorRecord.h"
 #include "motor.h"
 #include "drvPIC848.h"

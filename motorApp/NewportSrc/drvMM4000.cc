@@ -2,10 +2,6 @@
 FILENAME... drvMM4000.cc
 USAGE...    Motor record driver level support for Newport MM4000.
 
-Version:        $Revision: 15620 $
-Modified By:    $Author: rivers $
-Last Modified:  $Date: 2012-12-06 16:20:02 -0600 (Thu, 06 Dec 2012) $
-HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-9/motorApp/NewportSrc/drvMM4000.cc $
 */
 
 /*
@@ -88,6 +84,8 @@ HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-
 #include <epicsThread.h>
 #include <epicsString.h>
 #include <drvSup.h>
+#include <stdlib.h>
+#include <errlog.h>
 #include "motor.h"
 #include "NewportRegister.h"
 #include "drvMMCom.h"

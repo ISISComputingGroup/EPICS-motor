@@ -5,10 +5,6 @@ USAGE...    Motor driver support for Phytron Axis controller.
 Tom Slejko & Bor Marolt
 Cosylab d.d. 2014
  
-Version:        $Revision: 18549 $
-Modified By:    $Author: sluiter $
-Last Modified:  $Date: 2015-01-07 08:56:44 -0600 (Wed, 07 Jan 2015) $
-HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-9/motorApp/PhytronSrc/phytronAxisMotor.cpp $
 */
 
 #include <stdio.h>
@@ -21,7 +17,7 @@ HeadURL:        $URL: https://subversion.xray.aps.anl.gov/synApps/motor/tags/R6-
 #include <math.h>
 #ifndef _WIN32
 #include <unistd.h>
-#endif /* _WIN32 */
+#endif
 
 #include <drvAsynIPPort.h>
 #include <iocsh.h>

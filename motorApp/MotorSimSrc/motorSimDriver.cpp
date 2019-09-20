@@ -67,6 +67,8 @@ motorSimAxis::motorSimAxis(motorSimController *pController, int axis, double low
   nextpoint_.axis[0].p = start;
   route_ = routeNew( &(this->endpoint_), &pars );
   deferred_move_ = 0;
+  delayedDone_ = 0;
+  lastDone_ = 1;
 }
 
 
@@ -98,6 +100,7 @@ motorSimController::motorSimController(const char *portName, int numAxes, int pr
   for (axis=0; axis<numAxes; axis++) {
     new motorSimAxis(this, axis, DEFAULT_LOW_LIMIT, DEFAULT_HI_LIMIT, DEFAULT_HOME, DEFAULT_START);
     setDoubleParam(axis, this->motorPosition_, DEFAULT_START);
+	setDoubleParam(axis, this->motorPostMoveDelay_, 0.0);
   }
 
   this->motorThread_ = epicsThreadCreate("motorSimThread", 
@@ -408,6 +411,9 @@ void motorSimAxis::process(double delta )
 {
   double lastpos;
   int done = 0;
+  double postMoveDelay = 0.0;
+  epicsTimeStamp nowTime;
+  double nowTimeSecs = 0.0;
 
   lastpos = nextpoint_.axis[0].p;
   nextpoint_.T += delta;
@@ -448,11 +454,33 @@ void motorSimAxis::process(double delta )
 
   if (nextpoint_.axis[0].v ==  0) {
     if (!deferred_move_) {
-      done = 1;
+      if (!delayedDone_) {
+	done = 1;
+      }
     }
   } else {
     done = 0;
   }
+
+  //Post move delay
+  epicsTimeGetCurrent(&nowTime);
+  pC_->getDoubleParam(axisNo_, pC_->motorPostMoveDelay_, &postMoveDelay);
+  if ((lastDone_ == 0) && (done == 1)) {
+    if (postMoveDelay > 0) {
+      delayedDone_ = 1;
+      done = 0;
+      lastTimeSecs_ = nowTime.secPastEpoch + (nowTime.nsec / 1.e9);
+    }
+  }
+  if (delayedDone_ == 1) {
+    nowTimeSecs = nowTime.secPastEpoch + (nowTime.nsec / 1.e9);
+    if ((nowTimeSecs - lastTimeSecs_) >= postMoveDelay) {
+      done = 1;
+      delayedDone_ = 0;
+    }
+  }
+
+  lastDone_ = done;
 
   setDoubleParam (pC_->motorPosition_,         (nextpoint_.axis[0].p+enc_offset_));
   setDoubleParam (pC_->motorEncoderPosition_,  (nextpoint_.axis[0].p+enc_offset_));
