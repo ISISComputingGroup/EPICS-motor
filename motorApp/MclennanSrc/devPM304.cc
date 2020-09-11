@@ -166,9 +166,9 @@ STATIC void request_home(char* buff, int model, int axis, int home_direction, in
     } else {
         int motor_default=0, constant_velocity=1, reverse_and_zero=2;
         if ( home_mode==motor_default || home_mode==reverse_and_zero ) {
-            if ( home_mode==reverse_and_zero ) {
-                home_direction = -1;
-            }
+            //if ( home_mode==reverse_and_zero ) {
+            //    home_direction = -1;
+            //}
             sprintf(buff, "%dHD%d;", axis, home_direction);
         } else {
             // Let SNL take care of everything. See homing.st
