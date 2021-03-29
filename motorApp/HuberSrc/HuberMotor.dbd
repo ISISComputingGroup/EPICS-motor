@@ -1,0 +1,3 @@
+# Huber Device Driver support.
+registrar(HuberRegister)
+

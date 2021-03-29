@@ -114,6 +114,9 @@ SM300Src_DEPEND_DIRS = MotorSrc
 DIRS += AMCISrc
 AMCISrc_DEPEND_DIRS = MotorSrc
 
+DIRS += HuberSrc
+HuberSrc_DEPEND_DIRS = MotorSrc
+
 # The Script motor support requires the lua scripting module
 ifdef LUA
 DIRS += ScriptMotorSrc
