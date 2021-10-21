@@ -166,8 +166,13 @@ STATIC RTN_STATUS PM304_end_trans(struct motorRecord *mr)
 }
 
 /* request homing move */
-STATIC void request_home(char* buff, int model, int axis, int home_direction, int home_mode) {
+STATIC void request_home(struct mess_node *motor_call, int model, int axis, int home_direction, int home_mode) {
+    // Max creep speed is 800  - set to velo if under 800
+    int creep_speed = (VELO>800) ? 800 : VELO;
+    char buff[30];
     if (model == MODEL_PM304){
+        sprintf(buff, "%dSC%d;", axis, creep_speed);
+        strcat(motor_call->message, buff);
         sprintf(buff, "%dIX%d;", axis, home_direction);
     } else {
         if ( home_mode==HOME_MODE_BUILTIN || home_mode==HOME_MODE_REVERSE_HOME_AND_ZERO || home_mode==HOME_MODE_FORWARD_HOME_AND_ZERO) {
@@ -176,11 +181,14 @@ STATIC void request_home(char* buff, int model, int axis, int home_direction, in
             } else if ( home_mode==HOME_MODE_FORWARD_HOME_AND_ZERO ) {
                 home_direction = 1;
             }
+            sprintf(buff, "%dSC%d;", axis, creep_speed);
+            strcat(motor_call->message, buff);
             sprintf(buff, "%dHD%d;", axis, home_direction);
         } else {
-            // Let SNL take care of everything. See homing.st
+            // Let SNL take care of everything, so do not reset creep speed. See homing.st
         }
     }
+    strcat(motor_call->message, buff);
 }
 
 /* add a part to the transaction */
@@ -256,10 +264,10 @@ STATIC RTN_STATUS PM304_build_trans(motor_cmnd command, double *parms, struct mo
         sprintf(buff, "%dMR%ld;", axis, ival);
         break;
     case HOME_REV:
-        request_home(buff, cntrl->model, axis, -1, cntrl->home_mode[axis-1]);
+        request_home(motor_call, cntrl->model, axis, -1, cntrl->home_mode[axis-1]);
         break;
     case HOME_FOR:
-        request_home(buff, cntrl->model, axis, 1, cntrl->home_mode[axis-1]);
+        request_home(motor_call, cntrl->model, axis, 1, cntrl->home_mode[axis-1]);
         break;
     case LOAD_POS:
         if (cntrl->use_encoder[axis-1]){
@@ -269,6 +277,10 @@ STATIC RTN_STATUS PM304_build_trans(motor_cmnd command, double *parms, struct mo
     case SET_VEL_BASE:
         break;          /* PM304 does not use base velocity */
     case SET_VELOCITY:
+        if (cntrl->creep_speeds[axis-1] != 0) {
+            sprintf(buff, "%dSC%d;", axis, cntrl->creep_speeds[axis-1]);
+            strcat(motor_call->message, buff);
+        }
         sprintf(buff, "%dSV%ld;", axis, ival);
         VELO = ival;
         break;
