@@ -3815,6 +3815,35 @@ static void check_speed_and_resolution(motorRecord * pmr)
     db_post_events(pmr, &pmr->velo, DBE_VAL_LOG);
     db_post_events(pmr, &pmr->s, DBE_VAL_LOG);
 
+    /* RLLM <--> DLLM */
+    if (pmr->rllm != 0.0)
+    {
+        pmr->dllm = pmr->rllm * pmr->mres;
+        MARK(M_DLLM);
+    }
+    if (pmr->rllm != pmr->dllm / pmr->mres)
+    {
+        pmr->rllm = pmr->dllm / pmr->mres;
+        MARK_AUX(M_RLLM);
+    }
+    db_post_events(pmr, &pmr->dllm, DBE_VAL_LOG);
+    db_post_events(pmr, &pmr->rllm, DBE_VAL_LOG);
+
+
+    /* RHLM <--> DHLM */
+    if (pmr->rhlm != 0.0)
+    {
+        pmr->dhlm = pmr->rhlm * pmr->mres;
+        MARK(M_DHLM);
+    }
+    if (pmr->rhlm != pmr->dhlm / pmr->mres)
+    {
+        pmr->rhlm = pmr->dhlm / pmr->mres;
+        MARK_AUX(M_RHLM);
+    }
+    db_post_events(pmr, &pmr->rhlm, DBE_VAL_LOG);
+    db_post_events(pmr, &pmr->dhlm, DBE_VAL_LOG);
+
     /* SBAK (revolutions/sec) <--> BVEL (EGU/sec) */
     if (pmr->sbak != 0.0)
     {
@@ -3987,7 +4016,7 @@ static void set_dial_highlimit(motorRecord *pmr, struct motor_dset *pdset)
     motor_cmnd command;
     RTN_STATUS rtnval;
 
-    tmp_raw = pmr->dhlm / pmr->mres;
+    tmp_raw = pmr->rhlm;
     INIT_MSG();
     if (pmr->mres < 0) {
         command = SET_LOW_LIMIT;
@@ -4027,7 +4056,7 @@ static void set_dial_lowlimit(motorRecord *pmr, struct motor_dset *pdset)
     motor_cmnd command;
     RTN_STATUS rtnval;
 
-    tmp_raw = pmr->dllm / pmr->mres;
+    tmp_raw = pmr->rllm;
 
     INIT_MSG();
     if (pmr->mres < 0) {
