@@ -2702,6 +2702,22 @@ static long special(DBADDR *paddr, int after)
         set_userlimits(pmr);    /* Translate dial limits to user limits. */
         break;
 
+    case motorRecordRLLM:
+        if (pmr->rllm != (temp_dbl = pmr->dllm / pmr->mres))
+        {
+            pmr->rllm = temp_dbl;
+            db_post_events(pmr, &pmr->rllm, DBE_VAL_LOG);
+        }
+        break;
+
+    case motorRecordRHLM:
+        if (pmr->rhlm != (temp_dbl = pmr->dhlm / pmr->mres))
+        {
+            pmr->rhlm = temp_dbl;
+            db_post_events(pmr, &pmr->rhlm, DBE_VAL_LOG);
+        }
+        break;
+
         /* new user high limit */
     case motorRecordHLM:
         set_user_highlimit(pmr, pdset);
@@ -2784,28 +2800,21 @@ velcheckB:
             db_post_events(pmr, &pmr->vmax, DBE_VAL_LOG);
         }
         //TODO check this 
-        if (pmr->rllm != (temp_dbl = pmr->dllm / pmr->mres)) 
+        if (pmr->dllm != (temp_dbl = pmr->rllm * pmr->mres)) 
         {
-            pmr->rllm = temp_dbl;
-            db_post_events(pmr, &pmr->rllm, DBE_VAL_LOG);
+            pmr->dllm = temp_dbl;
+            db_post_events(pmr, &pmr->dllm, DBE_VAL_LOG);
         }
-        if (pmr->rhlm != (temp_dbl = pmr->dhlm / pmr->mres))
+        if (pmr->dhlm != (temp_dbl = pmr->rhlm * pmr->mres))
         {
-            pmr->rhlm = temp_dbl;
-            db_post_events(pmr, &pmr->rhlm, DBE_VAL_LOG);
+            pmr->dhlm = temp_dbl;
+            db_post_events(pmr, &pmr->dhlm, DBE_VAL_LOG);
         }
-        set_dial_highlimit(pmr, pdset);
-        db_post_events(pmr, &pmr->dhlm, DBE_VAL_LOG);
-
-        set_dial_lowlimit(pmr, pdset);
-        db_post_events(pmr, &pmr->dllm, DBE_VAL_LOG);
+        
 
         set_userlimits(pmr);
         db_post_events(pmr, &pmr->hlm, DBE_VAL_LOG);
         db_post_events(pmr, &pmr->llm, DBE_VAL_LOG);
-
-
-
 
         break;
 
@@ -3962,9 +3971,15 @@ static void set_user_highlimit(motorRecord* pmr, struct motor_dset* pdset)
     {
         SEND_MSG();
         if (dir_positive)
+        {
             pmr->dhlm = tmp_limit;
+            pmr->rhlm = tmp_raw;
+        }
         else
+        {
             pmr->dllm = tmp_limit;
+            pmr->rllm = tmp_limit;
+        }
     }
     MARK(M_HLM);
 }
@@ -4019,10 +4034,16 @@ static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset)
     else
     {
         SEND_MSG();
-        if (dir_positive)
+        if (dir_positive) {
             pmr->dllm = tmp_limit;
+            pmr->rllm = tmp_raw;
+        }
         else
+        {
             pmr->dhlm = tmp_limit;
+            pmr->rhlm = tmp_raw;
+        }
+
     }
     MARK(M_LLM);
 }
@@ -4042,7 +4063,7 @@ static void set_dial_highlimit(motorRecord *pmr, struct motor_dset *pdset)
     motor_cmnd command;
     RTN_STATUS rtnval;
 
-    tmp_raw = pmr->rhlm;
+    tmp_raw = pmr->dhlm / pmr->mres;
     INIT_MSG();
     if (pmr->mres < 0) {
         command = SET_LOW_LIMIT;
@@ -4057,11 +4078,13 @@ static void set_dial_highlimit(motorRecord *pmr, struct motor_dset *pdset)
     if (dir_positive)
     {
         pmr->hlm = pmr->dhlm + offset;
+        pmr->rhlm = tmp_raw;
         MARK(M_HLM);
     }
     else
     {
         pmr->llm = -(pmr->dhlm) + offset;
+        pmr->rllm = tmp_raw;
         MARK(M_LLM);
     }
     MARK(M_DHLM);
@@ -4082,7 +4105,7 @@ static void set_dial_lowlimit(motorRecord *pmr, struct motor_dset *pdset)
     motor_cmnd command;
     RTN_STATUS rtnval;
 
-    tmp_raw = pmr->rllm;
+    tmp_raw = pmr->dllm / pmr->mres;
 
     INIT_MSG();
     if (pmr->mres < 0) {
@@ -4098,6 +4121,7 @@ static void set_dial_lowlimit(motorRecord *pmr, struct motor_dset *pdset)
     if (dir_positive)
     {
         pmr->llm = pmr->dllm + offset;
+        pmr->rllm = tmp_raw;
         MARK(M_LLM);
     }
     else
