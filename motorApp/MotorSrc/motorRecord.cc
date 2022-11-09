@@ -234,6 +234,8 @@ static void monitor(motorRecord *);
 static void process_motor_info(motorRecord *, bool);
 static void load_pos(motorRecord *);
 static void check_speed_and_resolution(motorRecord *);
+static void set_user_highlimit(motorRecord*, struct motor_dset*);
+static void set_user_lowlimit(motorRecord*, struct motor_dset*);
 static void set_dial_highlimit(motorRecord *, struct motor_dset *);
 static void set_dial_lowlimit(motorRecord *, struct motor_dset *);
 static void set_userlimits(motorRecord *);
@@ -2495,7 +2497,7 @@ static long special(DBADDR *paddr, int after)
     int dir = dir_positive ? 1 : -1;
     bool changed = false;
     int fieldIndex = dbGetFieldIndex(paddr);
-    double offset, tmp_raw, tmp_limit, fabs_urev;
+    double fabs_urev;
     RTN_STATUS rtnval;
     motor_cmnd command;
     double temp_dbl;
@@ -2700,110 +2702,12 @@ static long special(DBADDR *paddr, int after)
 
         /* new user high limit */
     case motorRecordHLM:
-        offset = pmr->off;
-        if (dir_positive)
-        {
-            tmp_limit = pmr->hlm - offset;
-            MARK(M_DHLM);
-        }
-        else
-        {
-            tmp_limit = -(pmr->hlm) + offset;
-            MARK(M_DLLM);
-        }
-
-        /* Which controller limit we set depends not only on dir, but
-           also on the sign of MRES */
-        /* Direction +ve AND +ve MRES OR
-           Direction -ve AND -ve MRES */
-        if (dir_positive ^ (pmr->mres < 0))
-        {
-            command = SET_HIGH_LIMIT;
-        }
-        else
-        /* Direction -ve AND +ve MRES OR
-           Direction +ve AND -ve MRES */
-        {
-            command = SET_LOW_LIMIT;
-        }
-
-        tmp_raw = tmp_limit / pmr->mres;
-
-        INIT_MSG();
-        rtnval = (*pdset->build_trans)(command, &tmp_raw, pmr);
-        if (rtnval != OK)
-        {
-            /* If an error occured, build_trans() has reset
-             * dial high or low limit to controller's value. */
-
-            if (dir_positive)
-                pmr->hlm = pmr->dhlm + offset;
-            else
-                pmr->hlm = -(pmr->dllm) + offset;
-        }
-        else
-        {
-            SEND_MSG();
-            if (dir_positive)
-                pmr->dhlm = tmp_limit;
-            else
-                pmr->dllm = tmp_limit;
-        }
-        MARK(M_HLM);
+        set_user_highlimit(pmr, pdset);
         break;
 
         /* new user low limit */
     case motorRecordLLM:
-        offset = pmr->off;
-        if (dir_positive)
-        {
-            tmp_limit = pmr->llm - offset;
-            MARK(M_DLLM);
-        }
-        else
-        {
-            tmp_limit = -(pmr->llm) + offset;
-            MARK(M_DHLM);
-        }
-
-        /* Which controller limit we set depends not only on dir, but
-           also on the sign of MRES */
-        /* Direction +ve AND +ve MRES OR
-           Direction -ve AND -ve MRES */
-        if (dir_positive ^ (pmr->mres < 0))
-        {
-            command = SET_LOW_LIMIT;
-        }
-        else
-        /* Direction -ve AND +ve MRES OR
-           Direction +ve AND -ve MRES */
-        {
-            command = SET_HIGH_LIMIT;
-        }
-
-        tmp_raw = tmp_limit / pmr->mres;
-
-        INIT_MSG();
-        rtnval = (*pdset->build_trans)(command, &tmp_raw, pmr);
-        if (rtnval != OK)
-        {
-            /* If an error occured, build_trans() has reset
-             * dial high or low limit to controller's value. */
-
-            if (dir_positive)
-                pmr->llm = pmr->dllm + offset;
-            else
-                pmr->llm = -(pmr->dhlm) + offset;
-        }
-        else
-        {
-            SEND_MSG();
-            if (dir_positive)
-                pmr->dllm = tmp_limit;
-            else
-                pmr->dhlm = tmp_limit;
-        }
-        MARK(M_LLM);
+        set_user_lowlimit(pmr, pdset);
         break;
 
         /* new dial high limit */
@@ -3950,6 +3854,122 @@ static void check_speed_and_resolution(motorRecord * pmr)
         pmr->hvel = pmr->vbas;
     else
         range_check(pmr, &pmr->hvel, pmr->vbas, pmr->vmax);
+}
+
+static void set_user_highlimit(motorRecord* pmr, struct motor_dset* pdset)
+{
+    int dir_positive = (pmr->dir == motorDIR_Pos);
+    double tmp_limit, offset, tmp_raw;
+    motor_cmnd command;
+    RTN_STATUS rtnval;
+    offset = pmr->off;
+    if (dir_positive)
+    {
+        tmp_limit = pmr->hlm - offset;
+        MARK(M_DHLM);
+    }
+    else
+    {
+        tmp_limit = -(pmr->hlm) + offset;
+        MARK(M_DLLM);
+    }
+
+    /* Which controller limit we set depends not only on dir, but
+       also on the sign of MRES */
+       /* Direction +ve AND +ve MRES OR
+          Direction -ve AND -ve MRES */
+    if (dir_positive ^ (pmr->mres < 0))
+    {
+        command = SET_HIGH_LIMIT;
+    }
+    else
+        /* Direction -ve AND +ve MRES OR
+           Direction +ve AND -ve MRES */
+    {
+        command = SET_LOW_LIMIT;
+    }
+
+    tmp_raw = tmp_limit / pmr->mres;
+
+    INIT_MSG();
+    rtnval = (*pdset->build_trans)(command, &tmp_raw, pmr);
+    if (rtnval != OK)
+    {
+        /* If an error occured, build_trans() has reset
+         * dial high or low limit to controller's value. */
+
+        if (dir_positive)
+            pmr->hlm = pmr->dhlm + offset;
+        else
+            pmr->hlm = -(pmr->dllm) + offset;
+    }
+    else
+    {
+        SEND_MSG();
+        if (dir_positive)
+            pmr->dhlm = tmp_limit;
+        else
+            pmr->dllm = tmp_limit;
+    }
+    MARK(M_HLM);
+}
+
+static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset)
+{
+    int dir_positive = (pmr->dir == motorDIR_Pos);
+    double tmp_limit, offset, tmp_raw;
+    motor_cmnd command;
+    RTN_STATUS rtnval;
+    offset = pmr->off;
+    if (dir_positive)
+    {
+        tmp_limit = pmr->llm - offset;
+        MARK(M_DLLM);
+    }
+    else
+    {
+        tmp_limit = -(pmr->llm) + offset;
+        MARK(M_DHLM);
+    }
+
+    /* Which controller limit we set depends not only on dir, but
+       also on the sign of MRES */
+       /* Direction +ve AND +ve MRES OR
+          Direction -ve AND -ve MRES */
+    if (dir_positive ^ (pmr->mres < 0))
+    {
+        command = SET_LOW_LIMIT;
+    }
+    else
+        /* Direction -ve AND +ve MRES OR
+           Direction +ve AND -ve MRES */
+    {
+        command = SET_HIGH_LIMIT;
+    }
+
+    tmp_raw = tmp_limit / pmr->mres;
+
+    INIT_MSG();
+    rtnval = (*pdset->build_trans)(command, &tmp_raw, pmr);
+    if (rtnval != OK)
+    {
+        /* If an error occured, build_trans() has reset
+         * dial high or low limit to controller's value. */
+
+        if (dir_positive)
+            pmr->llm = pmr->dllm + offset;
+        else
+            pmr->llm = -(pmr->dhlm) + offset;
+    }
+    else
+    {
+        SEND_MSG();
+        if (dir_positive)
+            pmr->dllm = tmp_limit;
+        else
+            pmr->dhlm = tmp_limit;
+    }
+    MARK(M_LLM);
 }
 
 /*
