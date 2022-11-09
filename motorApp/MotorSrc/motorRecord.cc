@@ -385,6 +385,8 @@ typedef union
         unsigned int M_JOGR     :1;
         unsigned int M_HOMF     :1;
         unsigned int M_HOMR     :1;
+        unsigned int M_RHLM     :1;
+        unsigned int M_RLLM     :1;
     } Bits;
 } nmap_field;
 
@@ -2781,6 +2783,30 @@ velcheckB:
             pmr->vmax = temp_dbl;
             db_post_events(pmr, &pmr->vmax, DBE_VAL_LOG);
         }
+        //TODO check this 
+        if (pmr->rllm != (temp_dbl = pmr->dllm / pmr->mres)) 
+        {
+            pmr->rllm = temp_dbl;
+            db_post_events(pmr, &pmr->rllm, DBE_VAL_LOG);
+        }
+        if (pmr->rhlm != (temp_dbl = pmr->dhlm / pmr->mres))
+        {
+            pmr->rhlm = temp_dbl;
+            db_post_events(pmr, &pmr->rhlm, DBE_VAL_LOG);
+        }
+        set_dial_highlimit(pmr, pdset);
+        db_post_events(pmr, &pmr->dhlm, DBE_VAL_LOG);
+
+        set_dial_lowlimit(pmr, pdset);
+        db_post_events(pmr, &pmr->dllm, DBE_VAL_LOG);
+
+        set_userlimits(pmr);
+        db_post_events(pmr, &pmr->hlm, DBE_VAL_LOG);
+        db_post_events(pmr, &pmr->llm, DBE_VAL_LOG);
+
+
+
+
         break;
 
         /* new srev: make mres agree */
