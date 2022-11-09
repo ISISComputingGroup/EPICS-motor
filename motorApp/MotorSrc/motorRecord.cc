@@ -237,7 +237,7 @@ static void check_speed_and_resolution(motorRecord *);
 static void set_dial_highlimit(motorRecord *, struct motor_dset *);
 static void set_dial_lowlimit(motorRecord *, struct motor_dset *);
 static void set_user_highlimit(motorRecord*, struct motor_dset*);
-static void set_user_lowlimit(motorRecord*, struct motor_dset*, bool mark);
+static void set_user_lowlimit(motorRecord*, struct motor_dset*);
 static void set_userlimits(motorRecord *);
 static void range_check(motorRecord *, double *, double, double);
 static void clear_buttons(motorRecord *);
@@ -2812,7 +2812,7 @@ velcheckB:
 
         //set_user_highlimit(pmr, pdset);
         db_post_events(pmr, &pmr->hlm, DBE_VAL_LOG);
-        //set_user_lowlimit(pmr, pdset, false);
+        //set_user_lowlimit(pmr, pdset);
         db_post_events(pmr, &pmr->llm, DBE_VAL_LOG);
         break;
 
@@ -3890,7 +3890,7 @@ static void check_speed_and_resolution(motorRecord * pmr)
 }
 
 
-static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset, bool mark) {
+static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset) {
     int dir_positive = (pmr->dir == motorDIR_Pos);
     double offset = pmr->off;
     double tmp_limit, tmp_raw;
@@ -3900,14 +3900,12 @@ static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset, bool m
     if (dir_positive)
     {
         tmp_limit = pmr->llm - offset;
-        if (mark) { MARK(M_DLLM); }
+        MARK(M_DLLM);
     }
     else
     {
         tmp_limit = -(pmr->llm) + offset;
-        if (mark) {
-            MARK(M_DHLM);
-        }
+        MARK(M_DHLM);
     }
 
     /* Which controller limit we set depends not only on dir, but
@@ -3947,9 +3945,7 @@ static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset, bool m
         else
             pmr->dhlm = tmp_limit;
     }
-    if (mark) {
-        MARK(M_LLM);
-    }
+    MARK(M_LLM);
 }
 
 static void set_user_highlimit(motorRecord* pmr, struct motor_dset* pdset) {
