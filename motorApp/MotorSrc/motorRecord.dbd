@@ -302,7 +302,7 @@ recordtype(motor) {
                 interest(1)
                 size(16)
         }
-        field(RLLM,DBF_DOUBLE) {
+        field(RHLM,DBF_DOUBLE) {
                 prompt("Raw High Limit")
                 promptgroup(GUI_COMMON)
                 special(SPC_MOD)
