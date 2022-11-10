@@ -4045,6 +4045,7 @@ static void set_dial_highlimit(motorRecord *pmr, struct motor_dset *pdset)
     RTN_STATUS rtnval;
 
     tmp_raw = pmr->dhlm / pmr->mres;
+    pmr->rhlm = tmp_raw;
 
     INIT_MSG();
     if (pmr->mres < 0) {
@@ -4060,13 +4061,11 @@ static void set_dial_highlimit(motorRecord *pmr, struct motor_dset *pdset)
     if (dir_positive)
     {
         pmr->hlm = pmr->dhlm + offset;
-        pmr->rhlm = tmp_raw;
         MARK(M_HLM);
     }
     else
     {
         pmr->llm = -(pmr->dhlm) + offset;
-        pmr->rllm = tmp_raw;
         MARK(M_LLM);
     }
     MARK(M_DHLM);
@@ -4088,6 +4087,7 @@ static void set_dial_lowlimit(motorRecord *pmr, struct motor_dset *pdset)
     RTN_STATUS rtnval;
 
     tmp_raw = pmr->dllm / pmr->mres;
+    pmr->rllm = tmp_raw;
 
     INIT_MSG();
     if (pmr->mres < 0) {
@@ -4103,7 +4103,6 @@ static void set_dial_lowlimit(motorRecord *pmr, struct motor_dset *pdset)
     if (dir_positive)
     {
         pmr->llm = pmr->dllm + offset;
-        pmr->rllm = tmp_raw;
         MARK(M_LLM);
     }
     else
