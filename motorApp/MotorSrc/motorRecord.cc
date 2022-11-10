@@ -2702,22 +2702,6 @@ static long special(DBADDR *paddr, int after)
         set_userlimits(pmr);    /* Translate dial limits to user limits. */
         break;
 
-    case motorRecordRLLM:
-        if (pmr->rllm != (temp_dbl = pmr->dllm / pmr->mres))
-        {
-            pmr->rllm = temp_dbl;
-            db_post_events(pmr, &pmr->rllm, DBE_VAL_LOG);
-        }
-        break;
-
-    case motorRecordRHLM:
-        if (pmr->rhlm != (temp_dbl = pmr->dhlm / pmr->mres))
-        {
-            pmr->rhlm = temp_dbl;
-            db_post_events(pmr, &pmr->rhlm, DBE_VAL_LOG);
-        }
-        break;
-
         /* new user high limit */
     case motorRecordHLM:
         set_user_highlimit(pmr, pdset);
@@ -2799,7 +2783,6 @@ velcheckB:
             pmr->vmax = temp_dbl;
             db_post_events(pmr, &pmr->vmax, DBE_VAL_LOG);
         }
-        //TODO check this 
         if (pmr->dllm != (temp_dbl = pmr->rllm * pmr->mres)) 
         {
             pmr->dllm = temp_dbl;
@@ -2810,8 +2793,6 @@ velcheckB:
             pmr->dhlm = temp_dbl;
             db_post_events(pmr, &pmr->dhlm, DBE_VAL_LOG);
         }
-        
-
         set_userlimits(pmr);
         db_post_events(pmr, &pmr->hlm, DBE_VAL_LOG);
         db_post_events(pmr, &pmr->llm, DBE_VAL_LOG);
@@ -4064,6 +4045,7 @@ static void set_dial_highlimit(motorRecord *pmr, struct motor_dset *pdset)
     RTN_STATUS rtnval;
 
     tmp_raw = pmr->dhlm / pmr->mres;
+
     INIT_MSG();
     if (pmr->mres < 0) {
         command = SET_LOW_LIMIT;
