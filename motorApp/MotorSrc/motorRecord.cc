@@ -3901,6 +3901,12 @@ static void check_speed_and_resolution(motorRecord * pmr)
         range_check(pmr, &pmr->hvel, pmr->vbas, pmr->vmax);
 }
 
+/*
+FUNCTION... void set_user_highlimit(motorRecord *)
+USAGE... Set user high limit.
+NOTES... This function sends a command to the device to set the user high
+limit.  This is respective to the direction of the motor.
+*/
 static void set_user_highlimit(motorRecord* pmr, struct motor_dset* pdset)
 {
     int dir_positive = (pmr->dir == motorDIR_Pos);
@@ -3950,6 +3956,7 @@ static void set_user_highlimit(motorRecord* pmr, struct motor_dset* pdset)
     }
     else
     {
+        // set dial and raw limits
         SEND_MSG();
         if (dir_positive)
         {
@@ -3965,6 +3972,12 @@ static void set_user_highlimit(motorRecord* pmr, struct motor_dset* pdset)
     MARK(M_HLM);
 }
 
+/*
+FUNCTION... void set_user_lowlimit(motorRecord *)
+USAGE... Set user low limit.
+NOTES... This function sends a command to the device to set the user low
+limit.  This is respective to the direction of the motor.
+*/
 static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset)
 {
     int dir_positive = (pmr->dir == motorDIR_Pos);
@@ -4014,6 +4027,7 @@ static void set_user_lowlimit(motorRecord* pmr, struct motor_dset* pdset)
     }
     else
     {
+        // set dial and raw limits
         SEND_MSG();
         if (dir_positive) {
             pmr->dllm = tmp_limit;
@@ -4045,6 +4059,7 @@ static void set_dial_highlimit(motorRecord *pmr, struct motor_dset *pdset)
     RTN_STATUS rtnval;
 
     tmp_raw = pmr->dhlm / pmr->mres;
+    // set the raw high limit
     pmr->rhlm = tmp_raw;
 
     INIT_MSG();
@@ -4087,6 +4102,7 @@ static void set_dial_lowlimit(motorRecord *pmr, struct motor_dset *pdset)
     RTN_STATUS rtnval;
 
     tmp_raw = pmr->dllm / pmr->mres;
+    // set the raw low limit
     pmr->rllm = tmp_raw;
 
     INIT_MSG();
