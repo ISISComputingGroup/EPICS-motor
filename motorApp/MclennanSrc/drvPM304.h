@@ -40,6 +40,11 @@ struct PM304controller
     char port[80];          /* Asyn port name */
 	int reset_before_move;  /* Reset the controller before any move command */
 	int creep_speeds[PM304_MAX_CHANNELS]; /* Creep speed for each axis */
+    char current_op[PM304_MAX_CHANNELS][60]; /* PM600: current operation as per CO command */
+    int control_mode[PM304_MAX_CHANNELS];  /* PM600: datum mode as per CM command */
+    char datum_mode[PM304_MAX_CHANNELS][9];  /* PM600: datum mode as per DM command */
+    char abort_mode[PM304_MAX_CHANNELS][9];  /* PM600: abort mode as per AM command */
+    int velo[PM304_MAX_CHANNELS]; /* last set velocity, used in homing to set creep speed */
 };
 
 RTN_STATUS PM304Setup(int, int);

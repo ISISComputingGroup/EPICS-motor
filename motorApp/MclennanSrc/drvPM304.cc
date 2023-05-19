@@ -67,7 +67,7 @@ extern "C" {epicsExportAddress(int, drvPM304Debug);}
 
 static inline void Debug(int level, const char *format, ...) {
   #ifdef DEBUG
-    if (level < drvPM304Debug) {
+    if (level <= drvPM304Debug) {
       va_list pVar;
       va_start(pVar, format);
       vprintf(format, pVar);
@@ -94,7 +94,7 @@ int controller_error = 0;
 /*----------------functions-----------------*/
 STATIC int recv_mess(int card, char *buff, int len);
 STATIC RTN_STATUS send_mess(int, const char *, char *);
-STATIC int send_recv_mess(int card, const char *out, char *in);
+STATIC int send_recv_mess(int card, const char *out, char *in, size_t in_size);
 STATIC void start_status(int card);
 STATIC int set_status(int card, int signal);
 static long report(int level);
@@ -128,6 +128,27 @@ struct driver_table PM304_access =
     NULL
 };
 
+void printDatumMode(const char* mode)
+{
+    printf("Datum Mode (DM) is %s\n", mode);
+    printf("  Encoder index input polarity is %s\n", (mode[0] == '0' ? "normal" : "inverted"));
+    printf("  Datum point is captured %s\n", (mode[1] == '0' ? "only once (i.e. after HD command) " : "each time it happens"));
+    printf("  Datum position is %s\n", (mode[2] == '0' ? "captured but not changed" : "set to Home Position (SH) after datum search (HD)"));
+    printf("  Automatic direction search %s\n", (mode[3] == '0' ? "disabled" : "enabled"));
+    printf("  Automatic opposite limit search %s\n", (mode[4] == '0' ? "disabled" : "enabled"));
+}
+
+void printAbortMode(const char* mode)
+{
+    printf("Abort Mode (AM) is %s\n", mode);
+    printf("  Abort Stop Input %s\n", (mode[0] == '0' ? "disables control loop" : "stops all moves only"));
+    printf("  Abort Stop Input is %s\n", (mode[1] == '0' ? "latched requiring RS command to reset" : "only momentary"));
+    printf("  Stall Error %s\n", (mode[2] == '0' ? "disables control loop" : "is indicated but control loop remains active"));
+    printf("  Tracking Error %s\n", (mode[3] == '0' ? "disables control loop" : "is indicated but control loop remains active"));
+    printf("  TimeOut Error %s\n", (mode[4] == '0' ? "disables control loop" : "is indicated but control loop remains active"));
+    printf("  Enable output %s\n", (mode[7] == '0' ? "switched OFF during a disabled control loop" : "left ON during a control loop abort"));
+}
+
 struct drvPM304_drvet
 {
     long number;
@@ -150,17 +171,57 @@ STATIC struct thread_args targs = {SCAN_RATE, &PM304_access, 0.0};
  *********************************************************/
 static long report(int level)
 {
-  int card;
+  int card, motor_index;
+  struct PM304controller *cntrl;
+  char command[BUFF_SIZE];
+  char buff[2048]; /* need bigger than usual as QA can return a lot */
 
   if (PM304_num_cards <=0)
-    printf("    NO PM304 controllers found\n");
+    printf("    NO PM304/PM600 controllers found\n");
   else
     {
       for (card = 0; card < PM304_num_cards; card++)
-          if (motor_state[card])
-             printf("    PM304 controller %d, id: %s \n",
+          if (motor_state[card]) {
+             cntrl = (struct PM304controller *) motor_state[card]->DevicePrivate;
+             printf("    %s controller %d, id: %s \n          num axes %d\n",
+                   (cntrl->model == MODEL_PM304 ? "PM304" : "PM600"),
                    card,
-                   motor_state[card]->ident);
+                   motor_state[card]->ident,
+                   cntrl->n_axes);
+             for(motor_index = 0; motor_index < cntrl->n_axes; motor_index++) {
+                 printf("** Axis %d **\n", motor_index+1);
+                 printf("  reset before move %s\n", (cntrl->reset_before_move ? "YES" : "NO"));
+                 printf("  creep speed %d\n", cntrl->creep_speeds[motor_index]);
+                 printf("  use encoder %s\n", (cntrl->use_encoder[motor_index] ? "YES" : "NO"));
+                 printf("  home mode %d\n", cntrl->home_mode[motor_index]);
+                 printf("  control mode %d\n", cntrl->control_mode[motor_index]);
+                 printf("  current op %s\n", cntrl->current_op[motor_index]);
+                 printDatumMode(cntrl->datum_mode[motor_index]);
+                 printAbortMode(cntrl->abort_mode[motor_index]);
+                 sprintf(command, "%dQM", motor_index+1);
+                 send_recv_mess(card, command, buff, sizeof(buff));
+                 printf("%s\n", buff);
+                 sprintf(command, "%dQS", motor_index+1);
+                 send_recv_mess(card, command, buff, sizeof(buff));
+                 printf("%s\n", buff);
+                 sprintf(command, "%dQP", motor_index+1);
+                 send_recv_mess(card, command, buff, sizeof(buff));
+                 printf("%s\n", buff);
+                 if (level > 0) {
+                     // output from QA is many line, so temporarily disable \r\n termination checking and rely on TIMEOUT
+                     sprintf(command, "%dQA", motor_index+1);
+                     printf("Gathering output from %s command - this may cause a short pause...\n", command);
+                     char eosSave[4];
+                     int eoslen = 0;
+                     if (pasynOctetSyncIO->getInputEos(cntrl->pasynUser, eosSave, sizeof(eosSave), &eoslen) == asynSuccess) {
+                         pasynOctetSyncIO->setInputEos(cntrl->pasynUser, "", 0);
+                         send_recv_mess(card, command, buff, sizeof(buff));
+                         pasynOctetSyncIO->setInputEos(cntrl->pasynUser, eosSave, eoslen);
+                         printf("%s\n", buff);
+                     }
+                 }
+             }
+          }
     }
   return (0);
 }
@@ -230,7 +291,7 @@ STATIC int set_status(int card, int signal)
 
     /* Request the status of this motor */
     sprintf(command, "%dOS;", signal+1);
-    send_recv_mess(card, command, response);
+    send_recv_mess(card, command, response, sizeof(response));
     Debug(2, "set_status, status query, card %d, response=%s\n", card, response);
 
     status.Bits.RA_PLUS_LS = 0;
@@ -266,6 +327,7 @@ STATIC int set_status(int card, int signal)
         status.Bits.RA_DIRECTION = 0;
         ls_active = true;
         }
+        status.Bits.EA_HOME = 0;
     } else {
         /* The response string is 01: followed by an eight character string of ones and zeroes */
         strcpy(response, &response[3]);
@@ -278,21 +340,39 @@ STATIC int set_status(int card, int signal)
         }
 
         status.Bits.RA_PROBLEM = (response[1] == '1') ? 1 : 0;
-
+         
         if (response[2] == '1') {
-        status.Bits.RA_PLUS_LS = 1;
+        status.Bits.RA_PLUS_LS = 1; /* need to set ls_active = true; ? */
         }
         if (response[3] == '1') {
-        status.Bits.RA_MINUS_LS = 1;
+        status.Bits.RA_MINUS_LS = 1;  /* need to set ls_active = true; ? */
+        }
+        
+        // response[5] seems to be 1 all the time. Feels like you should be able 
+        // to set the ATHOME bits based on it, but seems not. Maybe it refers to
+        // which side iof the signal you are on etc. as opposed to the transition        
+    }
+
+    if (cntrl->model != MODEL_PM304) {
+        char *op; 
+        sprintf(command, "%dCO", signal+1);
+        send_recv_mess(card, command, response, sizeof(response));
+        Debug(2, "set_status, operation query, card %d, response=%s\n", card, response);
+        /* returns 01:XXX */
+        op = strchr(response, ':');
+        if (op != NULL) {
+            if (strncmp(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]))) {
+                Debug(1, "set_status: card %d axis %d: %s\n", card, signal + 1, op + 1);
+                strncpy(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]));
+            }
         }
     }
 
-
     /* encoder status */
+    status.Bits.EA_HOME       = 0;
     status.Bits.EA_SLIP       = 0;
     status.Bits.EA_POSITION   = 0;
     status.Bits.EA_SLIP_STALL = 0;
-    status.Bits.EA_HOME       = 0;
 
     /* Request the position of this motor */
     if (cntrl->use_encoder[signal]) {
@@ -300,7 +380,7 @@ STATIC int set_status(int card, int signal)
     } else {
         sprintf(command, "%dOC;", signal+1);
     }
-    send_recv_mess(card, command, response);
+    send_recv_mess(card, command, response, sizeof(response));
     /* Parse the response string which is of the form "AP=10234" (PM304) or 01:10234 (PM600)*/
     motorData = atoi(&response[3]);
     Debug(2, "set_status, position query, card %d, response=%s\n", card, response);
@@ -361,7 +441,7 @@ STATIC int set_status(int card, int signal)
 /*****************************************************/
 STATIC RTN_STATUS send_mess(int card, const char *com, char *name)
 {
-    char *p, *tok_save;
+    char *p, *tok_save = NULL;
     char response[BUFF_SIZE];
     char temp[BUFF_SIZE];
     struct PM304controller *cntrl;
@@ -380,25 +460,51 @@ STATIC RTN_STATUS send_mess(int card, const char *com, char *name)
     /* Device support can send us multiple commands separated with ';'
      * characters.  The PM304 cannot handle more than 1 command on a line
      * so send them separately */
-    strcpy(temp, com);
+    strncpy(temp, com, sizeof(temp));
     for (p = epicsStrtok_r(temp, ";", &tok_save);		 
                 ((p != NULL) && (strlen(p) != 0));
                 p = epicsStrtok_r(NULL, ";", &tok_save)) {
-		
+
         Debug(2, "send_mess: sending message to card %d, message=%s\n", card, p);
-	    pasynOctetSyncIO->writeRead(cntrl->pasynUser, p, strlen(p), response,
+        nread = 0;
+        response[0] = '\0';
+        pasynOctetSyncIO->writeRead(cntrl->pasynUser, p, strlen(p), response,
                 BUFF_SIZE, TIMEOUT, &nwrite, &nread, &eomReason);
-		/* Set the debug level for most responses to be 2. Flag reset messages
-		 * to 1 so we can spot them more easily */
-		int level;
-		if (strcmp(&p[1],"RS")==0 && strstr(response, "NOT ABORTED") == NULL) {
-			level = 1;
-			controller_error = 1;
-		} else {
-			level = 2;
-			controller_error = 0;
-		}
-        Debug(level, "send_mess: card %d, response=...\n%s\n", card, response);
+        /* Set the debug level for most responses to be 2. Flag reset messages
+         * to 1 so we can spot them more easily */
+        int level = 2;
+        if (nread < BUFF_SIZE) {
+            response[nread] = '\0';
+        } else {
+            response[BUFF_SIZE-1] = '\0';
+        }
+        if (nread == 0) {
+            Debug(1, "send_mess: card %d message=%s read ERROR: no response\n", card, p);
+        }
+        if (strchr(response, '!')) { /* an error contains an ! */
+            level = 1;
+        }
+        if (strcmp(&p[1],"RS")==0) {
+            if (strstr(response, "NOT ABORTED") == NULL && strstr(response, "RESET") == NULL) { // actual string is !NOT ABORTED
+                level = 1;
+                controller_error = 1;
+            } else {
+                level = 2;
+                controller_error = 0;
+            }
+        } else {
+            // this is to maintain previous behaviour, but should we always clear? Because this loop splits
+            // commands a reset before move will not see a controller_error as it will get cleared when the move
+            // command is executed. So only a reset on its own that fails will show. Is that intended?
+            controller_error = 0;
+        }
+        if (strcmp(&p[1], "ST") == 0) {
+            // ignore error expected if device is not moving
+            if (strstr(response, "NOT ALLOWED IN THIS MODE") != NULL) {
+                level = 2;
+            }
+        }
+        Debug(level, "send_mess: card %d, message=%s response=...\n%s\n", card, p, response);
     }
 
     return(OK);
@@ -420,6 +526,7 @@ STATIC int recv_mess(int card, char *com, int flag)
     char *pos;
     char temp[BUFF_SIZE];
     int flush;
+    int level = 2;
     asynStatus status;
     size_t nread=0;
     int eomReason;
@@ -447,9 +554,16 @@ STATIC int recv_mess(int card, char *com, int flag)
                                     timeout, &nread, &eomReason);
 
     /* The response from the PM304 is terminated with CR/LF.  Remove these */
-    if (nread == 0) com[0] = '\0';
+    if (nread < BUFF_SIZE) {
+        com[nread] = '\0';
+    } else {
+        com[BUFF_SIZE-1] = '\0';
+    }
     if (nread > 0) {
-        Debug(2, "recv_mess: card %d, flag=%d, message = \"%s\"\n", card, flag, com);
+        if (strchr(com, '!')) { /* errors contain ! */
+            level = 1;
+        }
+        Debug(level, "recv_mess: card %d, flag=%d, message = \"%s\"\n", card, flag, com);
     }
     if (nread == 0) {
         if (flag != FLUSH)  {
@@ -483,17 +597,16 @@ STATIC int recv_mess(int card, char *com, int flag)
 /* ring buffer                                       */
 /* send_recv_mess()                                  */
 /*****************************************************/
-STATIC int send_recv_mess(int card, const char *out, char *response)
+STATIC int send_recv_mess(int card, const char *out, char *response, size_t response_maxsize)
 {
-    char *p, *tok_save;
+    char *p, *tok_save = NULL;
     struct PM304controller *cntrl;
     char *pos;
     asynStatus status;
     size_t nwrite=0, nread=0;
     int eomReason;
     char temp[BUFF_SIZE];
-
-    response[0] = '\0';
+    int level = 2;
 
     /* Check that card exists */
     if (!motor_state[card])
@@ -509,31 +622,40 @@ STATIC int send_recv_mess(int card, const char *out, char *response)
      * so send them separately */
     strcpy(temp, out);
     for (p = epicsStrtok_r(temp, ";", &tok_save);
-                ((p != NULL) && (strlen(p) != 0));
-                p = epicsStrtok_r(NULL, ";", &tok_save)) {
+        ((p != NULL) && (strlen(p) != 0));
+        p = epicsStrtok_r(NULL, ";", &tok_save)) {
+        nread = 0;
+        response[0] = '\0';
         Debug(2, "send_recv_mess: sending message to card %d, message=%s\n", card, p);
-    status = pasynOctetSyncIO->writeRead(cntrl->pasynUser, p, strlen(p),
-                         response, BUFF_SIZE, TIMEOUT,
-                         &nwrite, &nread, &eomReason);
-    }
+        status = pasynOctetSyncIO->writeRead(cntrl->pasynUser, p, strlen(p),
+            response, response_maxsize, TIMEOUT,
+            &nwrite, &nread, &eomReason);
 
-    /* The response from the PM304 is terminated with CR/LF.  Remove these */
-    if (nread == 0) response[0] = '\0';;
-    if (nread > 0) {
-        Debug(2, "send_recv_mess: card %d, response = \"%s\"\n", card, response);
-    }
-    if (nread == 0) {
-        Debug(1, "send_recv_mess: card %d ERROR: no response\n", card);
-    }
-    /* The PM600 always echoes the command sent to it, before sending the response.  It is terminated
-       with a carriage return.  So we need to delete all characters up to and including the first
-       carriage return */
-    if (cntrl->model == MODEL_PM600) {
-       pos = strchr(response, '\r');
-       if (pos != NULL) {
-           strcpy(temp, pos+1);
-           strcpy(response, temp);
-       }
+        /* The response from the PM304 is terminated with CR/LF.  Remove these */
+        
+        if (nread < response_maxsize) {
+            response[nread] = '\0';
+        } else {
+            response[response_maxsize-1] = '\0';
+	}
+        if (strchr(response, '!')) {
+            level = 1;
+        }
+        if (nread > 0) {
+            Debug(level, "send_recv_mess: card %d, message = %s, response = \"%s\"\n", card, p, response);
+        }
+        if (nread == 0) {
+            Debug(1, "send_recv_mess: card %d, message = %s, ERROR: no response\n", card, p);
+        }
+        /* The PM600 always echoes the command sent to it, before sending the response.  It is terminated
+           with a carriage return.  So we need to delete all characters up to and including the first
+           carriage return */
+        if (cntrl->model == MODEL_PM600) {
+            pos = strchr(response, '\r');
+            if (pos != NULL) {
+                memmove(response, pos + 1, strlen(pos + 1) + 1); // +1 to copy string and NULL terminator
+            }
+        }
     }
     return(strlen(response));
 }
@@ -595,7 +717,7 @@ PM304Config(int card,             /* card being configured */
 
     if (n_axes == 0) n_axes=1;  /* This is a new parameter, some startup files don't have it yet */
     motor_state[card] = (struct controller *) malloc(sizeof(struct controller));
-    motor_state[card]->DevicePrivate = malloc(sizeof(struct PM304controller));
+    motor_state[card]->DevicePrivate = calloc(1, sizeof(struct PM304controller));
     cntrl = (struct PM304controller *) motor_state[card]->DevicePrivate;
     cntrl->n_axes = n_axes;
 	for (int i=0; i<n_axes; i++) {
@@ -667,7 +789,7 @@ STATIC int motor_init()
 
             do
             {
-                send_recv_mess(card_index, "1OA;", buff);
+                send_recv_mess(card_index, "1OA;", buff, sizeof(buff));
                 retry++;
                 /* Return value is length of response string */
             } while(strlen(buff) == 0 && retry < 3);
@@ -684,7 +806,7 @@ STATIC int motor_init()
             /* Don't turn on motor power, too dangerous */
             /* send_mess(i, "1RSES;", buff); */
             send_mess(card_index, "1ST;", 0);     /* Stop motor */
-            send_recv_mess(card_index, "1ID;", buff);    /* Read controller ID string */
+            send_recv_mess(card_index, "1ID;", buff, sizeof(buff));    /* Read controller ID string */
             strncpy(brdptr->ident, buff, MAX_IDENT_LEN);
             /* Parse the response to figure out what model this is */
             if (strstr(brdptr->ident, "PM304") != NULL) {
@@ -705,24 +827,37 @@ STATIC int motor_init()
                 motor_info->no_motion_count = 0;
                 motor_info->encoder_position = 0;
                 motor_info->position = 0;
+                if (cntrl->model != MODEL_PM304) {
+                    sprintf(command, "%dQM", motor_index+1);
+                    send_recv_mess(card_index, command, buff, sizeof(buff));    /* 01:CM = 1 AM = 00000000 DM = 00010000 JM = 11000000 */
+                    if (strchr(buff, '=') != NULL) {
+                        cntrl->control_mode[motor_index] = atoi(strchr(buff, '=') + 1);
+                    }
+                    if (strstr(buff, "DM =") != NULL) {
+                        int dm = atoi(strstr(buff, "DM =") + 1);
+                        epicsSnprintf(cntrl->datum_mode[motor_index], sizeof(cntrl->datum_mode[motor_index]), "%08d", dm);
+                    }
+                    if (strstr(buff, "AM =") != NULL) {
+                        int am = atoi(strstr(buff, "AM =") + 1);
+                        epicsSnprintf(cntrl->abort_mode[motor_index], sizeof(cntrl->abort_mode[motor_index]), "%08d", am);
+                    }
+                }
                 /* Figure out if we have an encoder or not.  If so use 0A, else use OC for readback. */
                 sprintf(command, "%dID", motor_index+1);
-                send_recv_mess(card_index, command, buff);    /* Read controller ID string for this axis */
+                send_recv_mess(card_index, command, buff, sizeof(buff));    /* Read controller ID string for this axis */
                 if (cntrl->model == MODEL_PM304) {
                     /* For now always assume encoder if PM304 - needs work */
                     cntrl->use_encoder[motor_index] = 1;
                 } else {
-                    /* PM600 ident string identifies open loop stepper motors */
-                    if (strstr(buff, "Open loop stepper mode") != NULL) {
+                    if (cntrl->control_mode[motor_index] == 11) { // CM11 Open loop stepper mode
                         cntrl->use_encoder[motor_index] = 0;
                     } else {
                         cntrl->use_encoder[motor_index] = 1;
                     }
                 }
-
                 /* Querying speeds for this axis */
                 sprintf(command, "%dQS", motor_index+1);
-                send_recv_mess(card_index, command, buff);
+                send_recv_mess(card_index, command, buff, sizeof(buff));
                 /* P600 returns 01:SC = 700 SV = 16200 SA = 50000 SD = 100000 LD = 200000
                    PM304 returns SV=16200,SC=1000,SA=100000,SD=100000 */
                 const char* delim = (cntrl->model == MODEL_PM304 ? "=," : "=: ");
