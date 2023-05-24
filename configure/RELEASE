@@ -9,8 +9,7 @@
 #
 # Add your declarations here
 
-SUPPORT=
--include $(TOP)/../configure/SUPPORT.$(EPICS_HOST_ARCH)
+SUPPORT=/path/to/support
 
 # If any motor controller communication mechanism besides the VME backplane is
 # required, then ASYN must be defined.
@@ -23,22 +22,23 @@ SNCSEQ=$(SUPPORT)/seq/master
 # Recommended BUSY release: R1-6
 BUSY=$(SUPPORT)/busy/master
 
-# Recommended EPICS release: R3.14.12.4
-EPICS_BASE=
--include $(TOP)/../configure/EPICS_BASE.$(EPICS_HOST_ARCH)
+# Recommended EPICS release: R3.15.6
+EPICS_BASE=/path/to/base
 
-# The following must be defined for the MXmotor device driver.
+# The following must be defined for motorMXmotor
 #!MX=$(SUPPORT)/mx/mx
 
-# The following support modules are required for the Hytec driver and for the examples in
-# <motor>/motorExApp.  To build examples, the top Makefile,
-# <motor>/Makefile must also be edited.
+# IPAC is required to build motorHytec
+# Recommended IPAC release: R2-15
+IPAC=$(SUPPORT)/ipac-R2-15
+
 
 # Recommended IPAC release: R2-12
 IPAC=$(SUPPORT)/ipac/master
 
 # Script module needed to build ScriptMotorController
 LUA=$(SUPPORT)/lua/master
+MODBUS=$(SUPPORT)/modbus/master
 
 # The following is only needed for the motor examples in iocBoot.
 #!MOTOR=$(TOP)

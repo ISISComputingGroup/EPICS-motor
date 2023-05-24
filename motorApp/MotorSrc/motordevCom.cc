@@ -152,9 +152,7 @@ LOGIC...
         Set local encoder ratio to unity.
     ENDIF
 
-    Set Initialize position indicator based on (Use Relative Moves indicator == TRUE, OR,
-        [|DVAL| > RDBD, AND, MRES != 0, AND, the above |"get_axis_info()" position| < RDBD)]
-        [NOTE: |controller position| >= RDBD takes precedence over save/restore position].
+    Set Initialize position indicator based on the RSTM field
     Set Command Primitive Initialization string indicator based on (non-NULL "init"
         pointer, AND, non-zero string length.
 
@@ -210,7 +208,7 @@ motor_init_record_com(struct motorRecord *mr, int brdcnt, struct driver_table *t
 
     /* Semaphore on private to record field data transfers */
     ptrans->lock = new epicsEvent(epicsEventFull);
-                                                        
+
     motor_call = &(ptrans->motor_call);
 
     callbackSetCallback((void (*)(struct callbackPvt *)) motor_callback,
@@ -292,6 +290,26 @@ motor_init_record_com(struct motorRecord *mr, int brdcnt, struct driver_table *t
 //    initPos = ((use_rel == true) ||
 //               (fabs(mr->dval) > mr->rdbd && mr->mres != 0 && fabs(axis_query.position * mr->mres) < mr->rdbd)
 //              ) ? true : false;
+    bool dval_non_zero_pos_near_zero = fabs(mr->dval) > mr->rdbd && mr->mres != 0 &&
+                                       fabs(axis_query.position * mr->mres) < mr->rdbd;
+    switch (mr->rstm) {
+        case motorRSTM_NearZero:
+            {
+                if (dval_non_zero_pos_near_zero)
+                    initPos = 1;
+            }
+            break;
+        case motorRSTM_Conditional:
+            {
+                if (dval_non_zero_pos_near_zero || use_rel)
+                    initPos = true;
+            }
+            break;
+        case motorRSTM_Always:
+          initPos = true;
+          break;
+    }
+
     /* Test for command primitive initialization string. */
     initString = (mr->init != NULL && strlen(mr->init)) ? true : false;
     /* Test for PID support. */

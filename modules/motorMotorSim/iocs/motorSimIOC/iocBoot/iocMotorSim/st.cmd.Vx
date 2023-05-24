@@ -1,0 +1,33 @@
+# The is the ASYN example for communication to 4 simulated motors
+# "#!" marks lines that can be uncommented.
+
+# The following must be added for many board support packages
+#!cd "... IOC st.cmd complete directory path ... "
+
+< cdCommands
+#!< ../nfsCommands
+
+cd topbin
+
+# If the VxWorks kernel was built using the project facility, the following must
+# be added before any C++ code is loaded (see SPR #28980).
+sysCplusEnable=1
+
+ld(0,0,"motorSim.munch")
+
+cd startup
+dbLoadDatabase("$(TOP)/dbd/motorSim.dbd")
+WithAsynVx_registerRecordDeviceDriver(pdbbase)
+
+# Use a local configuration if axes need individual customization
+< motorSim.cmd
+# Use a default, 8-axis configuration if axes can start with identical settings
+#!< motorSim.iocsh
+
+iocInit
+
+## motorUtil (allstop & alldone)
+motorUtilInit("IOC:")
+
+# Boot complete
+date

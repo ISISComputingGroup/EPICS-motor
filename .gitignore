@@ -9,6 +9,14 @@ O.*
 /include/
 /lib/
 /templates/
+bin/
+/db/
+dbd/
+html/
+include/
+/iocsh/
+lib/
+templates/
 cdCommands
 envPaths
 dllPath*.bat
@@ -20,3 +28,4 @@ runIOC.sh
 relPaths.sh
 iocBoot/iocmotorSim/motor.substitutions.local
 .project
+*.local
