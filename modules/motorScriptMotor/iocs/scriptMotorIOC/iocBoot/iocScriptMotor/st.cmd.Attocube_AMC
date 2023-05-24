@@ -1,0 +1,20 @@
+< envPaths
+
+dbLoadDatabase("$(TOP)/dbd/scriptMotor.dbd")
+scriptMotor_registerRecordDeviceDriver(pdbbase)
+
+epicsEnvSet("LUA_SCRIPT_PATH", "./scripts")
+
+epicsEnvSet("IP_ADDRESS", "123.456.789.000")
+
+# Connect to virtual motor controller server
+drvAsynIPPortConfigure("AMC-1_IP","$(IP_ADDRESS):9090", 0, 0, 0)
+
+#ScriptControllerConfig( "PORT_NAME", num_axes, "lua_script", "PARAMS=")
+ScriptControllerConfig("AMC-1", 2, "Attocube_AMC.lua", "PORT='AMC-1_IP'")
+ScriptAxisConfig("AMC-1", 0, "OPEN_LOOP='NO'")
+ScriptAxisConfig("AMC-1", 0, "OPEN_LOOP='YES'")
+
+dbLoadTemplate("motor.substitutions.Attocube_AMC")
+
+iocInit
