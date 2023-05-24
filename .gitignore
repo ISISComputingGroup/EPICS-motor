@@ -3,10 +3,11 @@ O.*
 *.swp
 *BAK.adl
 bin/
-db/
+/db/
 dbd/
 html/
 include/
+/iocsh/
 lib/
 templates/
 cdCommands
@@ -15,3 +16,4 @@ dllPath.bat
 auto_settings.sav*
 auto_positions.sav*
 .ccfxprepdir/
+*.local
