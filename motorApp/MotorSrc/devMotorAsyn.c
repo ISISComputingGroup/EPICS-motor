@@ -224,12 +224,6 @@ static void init_controller(struct motorRecord *pmr, asynUser *pasynUser )
                       pmr->name, setPos );
         }
 
-        if ( initEvent )
-        {
-            epicsEventMustWait(initEvent);
-            epicsEventDestroy(initEvent);
-            pPvt->initEvent = 0;
-        }
     }
     else
         asynPrint(pasynUser, ASYN_TRACE_FLOW,

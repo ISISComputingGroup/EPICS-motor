@@ -13,8 +13,7 @@ motorApp_DEPEND_DIRS   = configure
 #       <motor>/configure/RELEASE.
 # 3rd - make clean uninstall
 # 4th - make
-DIRS += iocBoot
-iocBoot_DEPEND_DIRS    = motorExApp
+
 DIRS += modules
 modules_DEPEND_DIRS = motorApp
 
