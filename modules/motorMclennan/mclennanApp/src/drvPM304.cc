@@ -93,13 +93,8 @@ int controller_error = 0;
 
 /*----------------functions-----------------*/
 STATIC int recv_mess(int card, char *buff, int len);
-<<<<<<< HEAD:motorApp/MclennanSrc/drvPM304.cc
-STATIC RTN_STATUS send_mess(int, const char *, char *);
-STATIC int send_recv_mess(int card, const char *out, char *in, size_t in_size);
-=======
 STATIC RTN_STATUS send_mess(int, const char *, const char *);
-STATIC int send_recv_mess(int card, const char *out, char *in);
->>>>>>> origin/vendor:modules/motorMclennan/mclennanApp/src/drvPM304.cc
+STATIC int send_recv_mess(int card, const char *out, char *in, size_t in_size);
 STATIC void start_status(int card);
 STATIC int set_status(int card, int signal);
 static long report(int level);

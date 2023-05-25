@@ -6,9 +6,9 @@ include $(TOP)/configure/CONFIG
 SUBMODULES += motorOms
 SUBMODULES += motorNewport
 SUBMODULES += motorAMCI
-SUBMODULES += motorAcs
-SUBMODULES += motorAcsMotion
-SUBMODULES += motorAcsTech80
+#SUBMODULES += motorAcs
+#SUBMODULES += motorAcsMotion
+#SUBMODULES += motorAcsTech80
 SUBMODULES += motorAerotech
 SUBMODULES += motorAttocube
 SUBMODULES += motorDeltaTau
@@ -19,10 +19,10 @@ endif
 SUBMODULES += motorIms
 SUBMODULES += motorKohzu
 SUBMODULES += motorMclennan
-SUBMODULES += motorMicos
+#SUBMODULES += motorMicos
 SUBMODULES += motorMicroMo
 SUBMODULES += motorMicronix
-SUBMODULES += motorMotorSim
+#SUBMODULES += motorMotorSim
 ifdef MX
 SUBMODULES += motorMXmotor
 endif

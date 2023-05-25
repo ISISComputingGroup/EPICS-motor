@@ -28,11 +28,6 @@ EPICS_BASE=/path/to/base
 # The following must be defined for motorMXmotor
 #!MX=$(SUPPORT)/mx/mx
 
-# IPAC is required to build motorHytec
-# Recommended IPAC release: R2-15
-IPAC=$(SUPPORT)/ipac-R2-15
-
-
 # Recommended IPAC release: R2-12
 IPAC=$(SUPPORT)/ipac/master
 
