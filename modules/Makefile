@@ -22,7 +22,7 @@ SUBMODULES += motorMclennan
 #SUBMODULES += motorMicos
 SUBMODULES += motorMicroMo
 SUBMODULES += motorMicronix
-#SUBMODULES += motorMotorSim
+SUBMODULES += motorMotorSim
 ifdef MX
 SUBMODULES += motorMXmotor
 endif
