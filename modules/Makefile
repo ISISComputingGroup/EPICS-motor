@@ -41,6 +41,8 @@ endif
 SUBMODULES += motorSmarAct
 SUBMODULES += motorSmartMotor
 SUBMODULES += motorThorLabs
+SUBMODULES += motorSM300
+SUBMODULES += motorLinMot
 
 # Allow sites to add extra submodules
 -include Makefile.local

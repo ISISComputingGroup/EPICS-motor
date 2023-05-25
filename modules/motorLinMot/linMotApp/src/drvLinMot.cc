@@ -42,7 +42,7 @@ int LinMot_num_cards = 0;
 
 /*----------------functions-----------------*/
 STATIC int recv_mess(int card, char *buff, int len);
-STATIC RTN_STATUS send_mess(int, const char *, char *);
+STATIC RTN_STATUS send_mess(int card, const char *com, const char *name);
 STATIC int send_recv_mess(int card, const char *out, char *in);
 STATIC void start_status(int card);
 STATIC int set_status(int card, int signal);
@@ -218,7 +218,7 @@ STATIC int set_status(int card, int signal)
 /*********************************************************
  * Send a message to the LinMot board.   
  *********************************************************/
-STATIC RTN_STATUS send_mess(int card, const char *com, char *name)
+STATIC RTN_STATUS send_mess(int card, const char *com, const char *name)
 {	
     char temp[BUFF_SIZE];
     Debug(2, "send_mess: sending message via send_recv_mess to card %d, message=%s\n", card, com);
