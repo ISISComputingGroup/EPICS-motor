@@ -348,9 +348,12 @@ STATIC int set_status(int card, int signal)
         status.Bits.RA_MINUS_LS = 1;  /* need to set ls_active = true; ? */
         }
         
-        // response[5] seems to be 1 all the time. Feels like you should be able 
-        // to set the ATHOME bits based on it, but seems not. Maybe it refers to
-        // which side iof the signal you are on etc. as opposed to the transition        
+        int datum = response[5] - '0';
+        if (datum != cntrl->datum[signal]) {
+            Debug(1, "set_status: card %d axis %d: %s datum sensor point\n", card, signal + 1, (datum == 1 ? "ON" : "NOT ON"));
+            cntrl->datum[signal] = datum;
+            // if this seems sensible, use it to set ATHOME
+        }
     }
 
     if (cntrl->model != MODEL_PM304) {
