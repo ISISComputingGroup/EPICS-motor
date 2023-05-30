@@ -193,7 +193,7 @@ static long report(int level)
                  printf("  reset before move %s\n", (cntrl->reset_before_move ? "YES" : "NO"));
                  printf("  creep speed %d\n", cntrl->creep_speeds[motor_index]);
                  printf("  use encoder %s\n", (cntrl->use_encoder[motor_index] ? "YES" : "NO"));
-                 printf("  home mode %d\n", cntrl->home_mode[motor_index]);
+                 printf("  home mode %d (%s)\n", cntrl->home_mode[motor_index], home_mode_name[cntrl->home_mode[motor_index]]);
                  printf("  control mode %d\n", cntrl->control_mode[motor_index]);
                  printf("  current op %s\n", cntrl->current_op[motor_index]);
                  printDatumMode(cntrl->datum_mode[motor_index]);
@@ -289,14 +289,34 @@ STATIC int set_status(int card, int signal)
     nodeptr = motor_info->motor_motion;
     status.All = motor_info->status.All;
 
+    status.Bits.RA_PLUS_LS = 0;
+    status.Bits.RA_MINUS_LS = 0;
+
+    bool homing = false;
+    if (cntrl->model != MODEL_PM304) {
+        char *op; 
+        sprintf(command, "%dCO", signal+1);
+        send_recv_mess(card, command, response, sizeof(response));
+        Debug(2, "set_status, operation query, card %d, response=%s\n", card, response);
+        /* returns 01:XXX */
+        op = strchr(response, ':');
+        if (op != NULL) {
+            // work out if we are homing to datum. This is so we can not flag a hard limit explicitly
+            // as that may affect a move to limit done as part of a home operation
+            if (strstr(op + 1, "Home") != NULL) {
+                homing = true;
+            }                
+            if (strncmp(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]))) {
+                Debug(1, "set_status: card %d axis %d: %s\n", card, signal + 1, op + 1);
+                strncpy(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]));
+            }
+        }
+    }
+
     /* Request the status of this motor */
     sprintf(command, "%dOS;", signal+1);
     send_recv_mess(card, command, response, sizeof(response));
     Debug(2, "set_status, status query, card %d, response=%s\n", card, response);
-
-    status.Bits.RA_PLUS_LS = 0;
-    status.Bits.RA_MINUS_LS = 0;
-
     if (cntrl->model == MODEL_PM304) {
         /* The response string is an eight character string of ones and zeroes */
 
@@ -327,7 +347,7 @@ STATIC int set_status(int card, int signal)
         status.Bits.RA_DIRECTION = 0;
         ls_active = true;
         }
-        status.Bits.EA_HOME = 0;
+        status.Bits.EA_HOME = status.Bits.RA_HOME = 0;
     } else {
         /* The response string is 01: followed by an eight character string of ones and zeroes */
         strcpy(response, &response[3]);
@@ -341,38 +361,25 @@ STATIC int set_status(int card, int signal)
 
         status.Bits.RA_PROBLEM = (response[1] == '1') ? 1 : 0;
          
-        if (response[2] == '1') {
-        status.Bits.RA_PLUS_LS = 1; /* need to set ls_active = true; ? */
+        // we do not want to set ls_active = true when we hit a limit. This is because it will end
+        // motion which we do not want to do if we are doing a hardware "move to limit + home to datum" operation
+        // however see https://epics.anl.gov/tech-talk/2014/msg01260.php
+        if (response[2] == '1' && !homing) {
+        status.Bits.RA_PLUS_LS = 1;
         }
-        if (response[3] == '1') {
-        status.Bits.RA_MINUS_LS = 1;  /* need to set ls_active = true; ? */
+        if (response[3] == '1' && !homing) {
+        status.Bits.RA_MINUS_LS = 1;
         }
-        
         int datum = response[5] - '0';
         if (datum != cntrl->datum[signal]) {
             Debug(1, "set_status: card %d axis %d: %s datum sensor point\n", card, signal + 1, (datum == 1 ? "ON" : "NOT ON"));
             cntrl->datum[signal] = datum;
-            // if this seems sensible, use it to set ATHOME
         }
+        status.Bits.EA_HOME = status.Bits.RA_HOME = datum;
     }
 
-    if (cntrl->model != MODEL_PM304) {
-        char *op; 
-        sprintf(command, "%dCO", signal+1);
-        send_recv_mess(card, command, response, sizeof(response));
-        Debug(2, "set_status, operation query, card %d, response=%s\n", card, response);
-        /* returns 01:XXX */
-        op = strchr(response, ':');
-        if (op != NULL) {
-            if (strncmp(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]))) {
-                Debug(1, "set_status: card %d axis %d: %s\n", card, signal + 1, op + 1);
-                strncpy(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]));
-            }
-        }
-    }
 
     /* encoder status */
-    status.Bits.EA_HOME       = 0;
     status.Bits.EA_SLIP       = 0;
     status.Bits.EA_POSITION   = 0;
     status.Bits.EA_SLIP_STALL = 0;
@@ -711,7 +718,7 @@ PM304Config(int card,             /* card being configured */
             const char *port,     /* asyn port name */
             int n_axes,           /* Number of axes */
             int home_modes,       /* Combined home modes of all axes */
-			int reset_before_move) /* Reset the McLennan before every move */
+			int reset_before_move) /* Reset (RS) the McLennan before every move */
 {
     struct PM304controller *cntrl;
 

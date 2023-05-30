@@ -33,14 +33,6 @@
 
 #define STATIC static
 
-#define HOME_MODE_BUILTIN 0
-#define HOME_MODE_CONST_VELOCITY_MOVE 1
-#define HOME_MODE_REVERSE_HOME_AND_ZERO 2
-#define HOME_MODE_CONST_VELOCITY_MOVE_AND_ZERO 3
-#define HOME_MODE_FORWARD_HOME_AND_ZERO 4
-#define HOME_MODE_FORWARD_LIMIT_REVERSE_HOME_AND_ZERO 5
-#define HOME_MODE_REVERSE_LIMIT_FORWARD_HOME_AND_ZERO 6
-
 extern struct driver_table PM304_access;
 
 #define NINT(f) (long)((f)>0 ? (f)+0.5 : (f)-0.5)
@@ -201,7 +193,7 @@ STATIC void request_home(struct mess_node *motor_call, int model, int axis, int 
                 sprintf(buff, "%dSH0;", axis); // define home position as 0
                 datum_mode[2] = '1'; // set datum mode to apply home position from SH
                 datum_mode[3] = '0'; // set datum mode to no automatic direction search
-                datum_mode[4] = '0'; // disablke auto limit search
+                datum_mode[4] = '0'; // disable auto limit search
                 home_direction = 1;
             }
             if (home_mode==HOME_MODE_FORWARD_LIMIT_REVERSE_HOME_AND_ZERO||home_mode==HOME_MODE_REVERSE_LIMIT_FORWARD_HOME_AND_ZERO){
