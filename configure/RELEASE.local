@@ -44,7 +44,6 @@ LUA=$(SUPPORT)/lua/master
 #!MOTOR=$(TOP)
 
 CALC=$(SUPPORT)/calc/master
-CALCMBLAH=/Instrument/Apps/EPICS/support/calc/master
 AUTOSAVE=$(SUPPORT)/autosave/master
 SSCAN=$(SUPPORT)/sscan/master
 ONCRPC=$(SUPPORT)/oncrpc/master
