@@ -23,9 +23,9 @@ dllPath*.bat
 auto_settings.sav*
 auto_positions.sav*
 .ccfxprepdir/
+*.local
 runIOC.bat
 runIOC.sh
 relPaths.sh
 iocBoot/iocmotorSim/motor.substitutions.local
 .project
-*.local

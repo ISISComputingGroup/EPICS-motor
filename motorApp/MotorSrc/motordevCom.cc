@@ -286,10 +286,6 @@ motor_init_record_com(struct motorRecord *mr, int brdcnt, struct driver_table *t
     else
         ep_mp[0] = ep_mp[1] = 1.0;
 
-    initPos = false;
-//    initPos = ((use_rel == true) ||
-//               (fabs(mr->dval) > mr->rdbd && mr->mres != 0 && fabs(axis_query.position * mr->mres) < mr->rdbd)
-//              ) ? true : false;
     bool dval_non_zero_pos_near_zero = fabs(mr->dval) > mr->rdbd && mr->mres != 0 &&
                                        fabs(axis_query.position * mr->mres) < mr->rdbd;
     switch (mr->rstm) {
@@ -309,6 +305,9 @@ motor_init_record_com(struct motorRecord *mr, int brdcnt, struct driver_table *t
           initPos = true;
           break;
     }
+
+    // ISIS: force off, but we should now change our dbs and use RSTM = Never (0)
+    initPos = false;
 
     /* Test for command primitive initialization string. */
     initString = (mr->init != NULL && strlen(mr->init)) ? true : false;
