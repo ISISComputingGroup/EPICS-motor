@@ -1,0 +1,2 @@
+CALC=$(SUPPORT)/calc/master
+SSCAN=$(SUPPORT)/sscan/master
