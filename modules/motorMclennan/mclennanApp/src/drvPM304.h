@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 /* File: drvPM304.h             */
-=======
-/* File: drvLinMot.h             */
->>>>>>> vendor_7_3
 /* Version: 2.0                 */
 /* Date Last Modified: 09-29-99 */
 
@@ -20,18 +16,12 @@
  * .03  02/11/03  mlr  Added support for PM600 model
  */
 
-<<<<<<< HEAD
 #ifndef	INCdrvPM304h
 #define	INCdrvPM304h 1
-=======
-#ifndef	INCdrvLinMoth
-#define	INCdrvLinMoth 1
->>>>>>> vendor_7_3
 
 #include "motordrvCom.h"
 #include "asynOctetSyncIO.h"
 
-<<<<<<< HEAD
 /* PM304 default profile. */
 
 #define PM304_NUM_CARDS           4
@@ -61,25 +51,3 @@ RTN_STATUS PM304Setup(int, int);
 RTN_STATUS PM304Config(int, const char *, int, int, int);
 
 #endif	/* INCdrvPM304h */
-=======
-/* LinMot default profile. */
-
-#define LinMot_NUM_CARDS           4
-#define LinMot_MAX_CHANNELS        10
-
-#define MODEL_LinMot 0
-#define MODEL_PM600 1
-
-struct LinMotController
-{
-    asynUser *pasynUser;    /* asyn */
-    int n_axes;             /* Number of axes on this controller */
-    char port[80];          /* asyn port name */
-    int speed_resolution;   /* The motor speed resolution. Default set to LinMot standard */
-};
-
-RTN_STATUS LinMotSetup(int, int);
-RTN_STATUS LinMotConfig(int, const char *, int);
-
-#endif	/* INCdrvLinMoth */
->>>>>>> vendor_7_3
