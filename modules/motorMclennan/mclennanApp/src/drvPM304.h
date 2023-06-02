@@ -45,9 +45,22 @@ struct PM304controller
     char datum_mode[PM304_MAX_CHANNELS][9];  /* PM600: datum mode as per DM command */
     char abort_mode[PM304_MAX_CHANNELS][9];  /* PM600: abort mode as per AM command */
     int velo[PM304_MAX_CHANNELS]; /* last set velocity, used in homing to set creep speed */
+    int datum[PM304_MAX_CHANNELS]; /* state of datum signal */
 };
 
 RTN_STATUS PM304Setup(int, int);
 RTN_STATUS PM304Config(int, const char *, int, int, int);
+
+enum HomeModes {
+   HOME_MODE_BUILTIN=0, HOME_MODE_CONST_VELOCITY_MOVE, HOME_MODE_REVERSE_HOME_AND_ZERO, 
+   HOME_MODE_CONST_VELOCITY_MOVE_AND_ZERO, HOME_MODE_FORWARD_HOME_AND_ZERO, 
+   HOME_MODE_FORWARD_LIMIT_REVERSE_HOME_AND_ZERO, HOME_MODE_REVERSE_LIMIT_FORWARD_HOME_AND_ZERO 
+};
+
+static const char* home_mode_name[] = {
+    "HOME_MODE_BUILTIN", "HOME_MODE_CONST_VELOCITY_MOVE", "HOME_MODE_REVERSE_HOME_AND_ZERO",
+    "HOME_MODE_CONST_VELOCITY_MOVE_AND_ZERO", "HOME_MODE_FORWARD_HOME_AND_ZERO",
+    "HOME_MODE_FORWARD_LIMIT_REVERSE_HOME_AND_ZERO", "HOME_MODE_REVERSE_LIMIT_FORWARD_HOME_AND_ZERO"
+};
 
 #endif	/* INCdrvPM304h */

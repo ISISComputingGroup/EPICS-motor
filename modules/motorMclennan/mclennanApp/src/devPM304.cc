@@ -33,12 +33,6 @@
 
 #define STATIC static
 
-#define HOME_MODE_BUILTIN 0
-#define HOME_MODE_CONST_VELOCITY_MOVE 1
-#define HOME_MODE_REVERSE_HOME_AND_ZERO 2
-#define HOME_MODE_CONST_VELOCITY_MOVE_AND_ZERO 3
-#define HOME_MODE_FORWARD_HOME_AND_ZERO 4
-
 extern struct driver_table PM304_access;
 
 #define NINT(f) (long)((f)>0 ? (f)+0.5 : (f)-0.5)
@@ -183,17 +177,30 @@ STATIC void request_home(struct mess_node *motor_call, int model, int axis, int 
         sprintf(buff, "%dIX%d;", axis, home_direction);
     } else {
         // datum mode: [0] = encoder index input polarity, [3] automatic direction search, [4] automatic opposite limit search
-        if ( home_mode==HOME_MODE_BUILTIN || home_mode==HOME_MODE_REVERSE_HOME_AND_ZERO || home_mode==HOME_MODE_FORWARD_HOME_AND_ZERO) {
-            datum_mode[1] = '0'; // set datum mode to capture only on HD command
-            if ( home_mode==HOME_MODE_REVERSE_HOME_AND_ZERO ) {
+        if ( home_mode==HOME_MODE_BUILTIN || home_mode==HOME_MODE_REVERSE_HOME_AND_ZERO || home_mode==HOME_MODE_FORWARD_HOME_AND_ZERO ||
+             home_mode==HOME_MODE_FORWARD_LIMIT_REVERSE_HOME_AND_ZERO || home_mode==HOME_MODE_REVERSE_LIMIT_FORWARD_HOME_AND_ZERO ) {
+            datum_mode[1] = '0'; // set datum mode to capture only once on HD command
+            if ( home_mode==HOME_MODE_BUILTIN ) {
+                datum_mode[3] = '0'; // set datum mode to no automatic direction search, will use passed home_direction
+                datum_mode[4] = '0'; // no auto opposite limit search
+            } else if ( home_mode==HOME_MODE_REVERSE_HOME_AND_ZERO||home_mode==HOME_MODE_FORWARD_LIMIT_REVERSE_HOME_AND_ZERO ) {
                 sprintf(buff, "%dSH0;", axis); // define home position as 0
-                datum_mode[2] = '1'; // set datum mode to apply home position
+                datum_mode[2] = '1'; // set datum mode to apply home position from SH
+                datum_mode[3] = '0'; // set datum mode to no automatic direction search
+                datum_mode[4] = '0'; // disablke auto limit search
                 home_direction = -1;
-            } else if ( home_mode==HOME_MODE_FORWARD_HOME_AND_ZERO ) {
+            } else if ( home_mode==HOME_MODE_FORWARD_HOME_AND_ZERO||home_mode==HOME_MODE_REVERSE_LIMIT_FORWARD_HOME_AND_ZERO ) {
                 sprintf(buff, "%dSH0;", axis); // define home position as 0
-                datum_mode[2] = '1'; // set datum mode to apply home position
+                datum_mode[2] = '1'; // set datum mode to apply home position from SH
+                datum_mode[3] = '0'; // set datum mode to no automatic direction search
+                datum_mode[4] = '0'; // disable auto limit search
                 home_direction = 1;
             }
+            if (home_mode==HOME_MODE_FORWARD_LIMIT_REVERSE_HOME_AND_ZERO||home_mode==HOME_MODE_REVERSE_LIMIT_FORWARD_HOME_AND_ZERO){
+                datum_mode[4] = '1'; // enable auto limit search
+            } 
+            strcat(motor_call->message, buff);
+            sprintf(buff, "%dCD;", axis);
             strcat(motor_call->message, buff);
             sprintf(buff, "%dDM%s;", axis, datum_mode);
             strcat(motor_call->message, buff);
