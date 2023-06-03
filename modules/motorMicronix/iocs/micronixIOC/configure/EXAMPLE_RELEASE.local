@@ -1,0 +1,6 @@
+# Use the following lines if motorMicronix was built inside motor
+MOTOR=
+-include $(MOTOR)/configure/RELEASE
+# Use the following lines if motorMicronix was built outside motor
+#!MOTOR_MICRONIX=
+#!-include $(MOTOR_MICRONIX)/configure/RELEASE.local

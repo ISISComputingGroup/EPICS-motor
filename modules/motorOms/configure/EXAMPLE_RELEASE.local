@@ -1,0 +1,4 @@
+MOTOR=
+-include $(MOTOR)/modules/RELEASE.$(EPICS_HOST_ARCH).local
+# path to motorOms is needed to build the IOC inside motorOms, but outside motor
+MOTOR_OMS=

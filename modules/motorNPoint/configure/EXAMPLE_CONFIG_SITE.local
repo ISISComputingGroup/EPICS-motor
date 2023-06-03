@@ -1,0 +1,9 @@
+# Use settings from motor's CONFIG_SITE unless they are overridden below
+-include $(MOTOR)/configure/CONFIG_SITE
+
+#
+CHECK_RELEASE = WARN
+#
+#BUILD_IOCS = YES
+#uncomment the line below if you want to use asynFTDI
+#FTDI = YES

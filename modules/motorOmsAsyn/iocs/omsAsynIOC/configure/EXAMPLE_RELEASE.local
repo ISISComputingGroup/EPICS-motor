@@ -1,0 +1,6 @@
+# Use the following lines if motorOmsAsyn was built inside motor
+MOTOR=
+-include $(MOTOR)/configure/RELEASE
+# Use the following lines if motorOmsAsyn was built outside motor
+#!MOTOR_OMSASYN=
+#!-include $(MOTOR_OMSASYN)/configure/RELEASE.local

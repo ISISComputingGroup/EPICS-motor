@@ -1,0 +1,6 @@
+# Use the following lines if motorNPoint was built inside motor
+MOTOR=
+-include $(MOTOR)/configure/RELEASE
+# Use the following lines if motorNPoint was built outside motor
+#!MOTOR_NPOINT=
+#!-include $(MOTOR_NPOINT)/configure/RELEASE.local
