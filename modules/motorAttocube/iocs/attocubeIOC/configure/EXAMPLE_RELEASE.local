@@ -1,0 +1,6 @@
+# Use the following lines if motorAttocube was built inside motor
+MOTOR=
+-include $(MOTOR)/configure/RELEASE
+# Use the following lines if motorAttocube was built outside motor
+#!MOTOR_ATTOCUBE=
+#!-include $(MOTOR_ATTOCUBE)/configure/RELEASE.local

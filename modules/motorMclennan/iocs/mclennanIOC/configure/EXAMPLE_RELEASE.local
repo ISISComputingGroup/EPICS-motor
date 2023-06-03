@@ -1,0 +1,6 @@
+# Use the following lines if motorMclennan was built inside motor
+MOTOR=
+-include $(MOTOR)/configure/RELEASE
+# Use the following lines if motorMclennan was built outside motor
+#!MOTOR_MCLENNAN=
+#!-include $(MOTOR_MCLENNAN)/configure/RELEASE.local
