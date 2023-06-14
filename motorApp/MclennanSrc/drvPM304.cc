@@ -93,7 +93,7 @@ int controller_error = 0;
 
 /*----------------functions-----------------*/
 STATIC int recv_mess(int card, char *buff, int len);
-STATIC RTN_STATUS send_mess(int, const char *,  char *);
+STATIC RTN_STATUS send_mess(int, const char *, const char *);
 STATIC int send_recv_mess(int card, const char *out, char *in, size_t in_size);
 STATIC void start_status(int card);
 STATIC int set_status(int card, int signal);
@@ -305,7 +305,7 @@ STATIC int set_status(int card, int signal)
             // as that may affect a move to limit done as part of a home operation
             if (strstr(op + 1, "Home") != NULL) {
                 homing = true;
-            }                
+            }
             if (strncmp(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]))) {
                 Debug(1, "set_status: card %d axis %d: %s\n", card, signal + 1, op + 1);
                 strncpy(cntrl->current_op[signal], op + 1, sizeof(cntrl->current_op[0]));
@@ -449,7 +449,7 @@ STATIC int set_status(int card, int signal)
 /* ring buffer                                       */
 /* send_mess()                                       */
 /*****************************************************/
-STATIC RTN_STATUS send_mess(int card, const char *com,  char *name)
+STATIC RTN_STATUS send_mess(int card, const char *com, const char *name)
 {
     char *p, *tok_save = NULL;
     char response[BUFF_SIZE];
@@ -592,7 +592,7 @@ STATIC int recv_mess(int card, char *com, int flag)
            strcpy(com, temp);
        }
     }
-    return(strlen(com));
+    return(static_cast<int>(strlen(com)));
 }
 
 
@@ -647,7 +647,7 @@ STATIC int send_recv_mess(int card, const char *out, char *response, size_t resp
             response[nread] = '\0';
         } else {
             response[response_maxsize-1] = '\0';
-	}
+        }
         if (strchr(response, '!')) {
             level = 1;
         }
@@ -667,7 +667,7 @@ STATIC int send_recv_mess(int card, const char *out, char *response, size_t resp
             }
         }
     }
-    return(strlen(response));
+    return(static_cast<int>(strlen(response)));
 }
 
 
@@ -844,11 +844,11 @@ STATIC int motor_init()
                         cntrl->control_mode[motor_index] = atoi(strchr(buff, '=') + 1);
                     }
                     if (strstr(buff, "DM =") != NULL) {
-                        int dm = atoi(strstr(buff, "DM =") + 1);
+                        int dm = atoi(strstr(buff, "DM =") + 4); // 4 is length of "DM ="
                         epicsSnprintf(cntrl->datum_mode[motor_index], sizeof(cntrl->datum_mode[motor_index]), "%08d", dm);
                     }
                     if (strstr(buff, "AM =") != NULL) {
-                        int am = atoi(strstr(buff, "AM =") + 1);
+                        int am = atoi(strstr(buff, "AM =") + 4);  // 4 is length of "AM ="
                         epicsSnprintf(cntrl->abort_mode[motor_index], sizeof(cntrl->abort_mode[motor_index]), "%08d", am);
                     }
                 }
@@ -886,7 +886,13 @@ STATIC int motor_init()
                 }
                 cntrl->creep_speeds[motor_index] = creep_speed;
                 if (creep_speed == 0) {
-                    printf("WARNING: unable to determine creep speed for axis %d\n", motor_index);
+                    printf("ERROR: unable to determine creep speed for axis %d\n", motor_index+1);
+                }
+                sprintf(command, "%dOS", motor_index+1);
+                send_recv_mess(card_index, command, buff, sizeof(buff));
+                // the controller needs to be set to quiet mode via dip switch
+                if (strchr(buff, '=') != NULL) {
+                    printf("ERROR: verbose mode detected on controller for axis %d\n", motor_index+1);
                 }
 
                 Debug(3, "PM304 motor_init(), cntrl->model=%d, cntrl->use_encoder[%d]=%d.\n", cntrl->model, motor_index, cntrl->use_encoder[motor_index]);
