@@ -305,8 +305,13 @@ STATIC RTN_STATUS PM304_build_trans(motor_cmnd command, double *parms, struct mo
     case SET_VEL_BASE:
         break;          /* PM304 does not use base velocity */
     case SET_VELOCITY:
+        // creep speed is minimum velocity
         if (cntrl->creep_speeds[axis-1] != 0) {
-            sprintf(buff, "%dSC%d;", axis, cntrl->creep_speeds[axis-1]);
+            if (ival > cntrl->creep_speeds[axis-1]) {
+                sprintf(buff, "%dSC%d;", axis, cntrl->creep_speeds[axis-1]);
+            } else {
+                sprintf(buff, "%dSC%ld;", axis, ival);
+            }
             strcat(motor_call->message, buff);
         }
         sprintf(buff, "%dSV%ld;", axis, ival);
