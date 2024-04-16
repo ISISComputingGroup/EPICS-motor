@@ -1,8 +1,0 @@
-
-record(longin,"$(P)$(C)$(R)")
-{
-        field(PINI, "YES")
-        field(DTYP,"asynUInt32Digital")
-        field(INP,"@asynMask($(PORT) $(CHAN) 0xffffffff)DIGITAL_INPUT")
-        field(SCAN, "$(SCAN)")
-}

@@ -1,3 +1,0 @@
-registrar(AcsMotionRegister)
-registrar(AcsMotionCommRegister)
-registrar(AcsMotionAuxIORegister)

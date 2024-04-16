@@ -1,3 +1,0 @@
-# prefix used for all PVs in this IOC
-epicsEnvSet("PREFIX", "acsMotion:")
-
