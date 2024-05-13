@@ -171,6 +171,8 @@ STATIC void request_home(struct mess_node *motor_call, int model, int axis, int 
     char* datum_mode = cntrl->datum_mode[axis-1];
     char buff[32];
     buff[0] = '\0';
+    sprintf(buff, "%dBA;", axis);
+    strcat(motor_call->message, buff);
     if (model == MODEL_PM304){
         sprintf(buff, "%dSC%d;", axis, creep_speed);
         strcat(motor_call->message, buff);
